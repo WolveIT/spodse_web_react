@@ -1,6 +1,6 @@
 import React from "react";
 import PlaceholderPage from "../../components/PlaceholderPage";
 
-export default function Users() {
-  return <PlaceholderPage title="Users Page" />;
+export default function NewUser() {
+  return <PlaceholderPage title="Add New User Page" />;
 }

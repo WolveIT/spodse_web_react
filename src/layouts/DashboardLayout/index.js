@@ -1,47 +1,29 @@
-import React from "react";
-import { Container, useTheme, Grid, Typography } from "@material-ui/core";
-import Sidebar from "./sidebar";
+import React, { useState, useCallback } from "react";
+import Sidebar from "./Sidebar";
+import Header from "./Header";
+import { Layout } from "antd";
 import { connect } from "dva";
+import { toggleSidebarCollapsed } from "../../models/router";
 
-const Header = connect(({ auth }) => ({
-  displayName: auth.user?.displayName,
-  email: auth.user?.email,
-}))((props) => {
-  return (
-    <div
-      style={{
-        backgroundColor: "rgba(0,0,0,0.8)",
-        padding: "0px 12px",
-        height: "64px",
-        flexDirection: "row",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-      }}
-    >
-      <Typography
-        style={{
-          color: "#fff",
-          position: "absolute",
-          right: "24px",
-        }}
-      >
-        {props.displayName || props.email}
-      </Typography>
-    </div>
-  );
-});
+const { Content } = Layout;
 
-export default function DashboardLayout({ children }) {
+function DashboardLayout({ children, collapsed, toggleCollapsed }) {
   return (
-    <Grid container style={{ height: "100vh" }}>
-      <Sidebar />
-      <Grid item xs>
-        <Header />
-        <div style={{ height: "calc(100% - 64px)", position: "relative" }}>
-          {children}
-        </div>
-      </Grid>
-    </Grid>
+    <Layout style={{ height: "100vh" }}>
+      <Header collapsed={collapsed} toggleCollapsed={toggleCollapsed} />
+      <Layout>
+        <Sidebar collapsed={collapsed} toggleCollapsed={toggleCollapsed} />
+        <Layout>
+          <Content style={{ position: "relative" }}>{children}</Content>
+        </Layout>
+      </Layout>
+    </Layout>
   );
 }
+
+export default connect(
+  ({ router }) => ({
+    collapsed: router.sidebarCollapsed,
+  }),
+  { toggleCollapsed: toggleSidebarCollapsed }
+)(DashboardLayout);

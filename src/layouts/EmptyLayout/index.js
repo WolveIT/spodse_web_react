@@ -1,5 +1,6 @@
 import React from "react";
+import { Layout } from "antd";
 
 export default function EmptyLayout({ children }) {
-  return <Container>{children}</Container>;
+  return <Layout>{children}</Layout>;
 }

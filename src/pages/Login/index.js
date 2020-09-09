@@ -1,69 +1,72 @@
-import React, { useState, isValidElement, useCallback } from "react";
-import { Container, Typography, TextField, useTheme } from "@material-ui/core";
-import { isValidEmail } from "../../utils/validations";
+import React, { useCallback } from "react";
+import { Form, Input, Button } from "antd";
+import { isValidEmail, isValidPassword } from "../../utils/validations";
 import { loginWithEmail } from "../../models/auth";
-import Button from "../../components/Button";
 import { connect } from "dva";
 
-export default connect(({ auth }) => ({ loading: auth.loading.login }), {
-  loginWithEmail,
-})(function Login(props) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const theme = useTheme();
+const layout = {
+  labelCol: {
+    span: 8,
+  },
+  wrapperCol: {
+    span: 16,
+  },
+};
+const tailLayout = {
+  wrapperCol: {
+    offset: 8,
+    span: 16,
+  },
+};
 
-  const handleEmail = useCallback((e) => {
-    setEmail(e.target.value);
-  });
-
-  const handlePassword = useCallback((e) => {
-    setPassword(e.target.value);
-  });
-
-  const handleLogin = useCallback(() => {
-    props.loginWithEmail(email, password);
-  });
+const Login = ({ login, loading }) => {
+  const onFinish = useCallback((values) =>
+    login(values.email, values.password)
+  );
 
   return (
-    <div>
-      <Typography align="center" variant="h3">
-        Login
-      </Typography>
-      <Container
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          width: theme.breakpoints.width("sm"),
-          maxWidth: "80%",
-          marginTop: "32px",
-          justifyContent: "space-between",
-          height: "190px",
-        }}
+    <Form {...layout} onFinish={onFinish}>
+      <Form.Item
+        label="Email"
+        name="email"
+        rules={[
+          { required: true },
+          {
+            validator: (_, val) =>
+              isValidEmail(val)
+                ? Promise.resolve()
+                : Promise.reject("Email is invalid"),
+          },
+        ]}
       >
-        <TextField
-          name="email"
-          label="Email"
-          required
-          type="email"
-          error={!isValidEmail(email)}
-          onChange={handleEmail}
-          value={email}
-        />
-        <TextField
-          name="password"
-          label="Password"
-          required
-          type="password"
-          onChange={handlePassword}
-          value={password}
-        />
-        <Button
-          onClick={handleLogin}
-          title="Login"
-          style={{ marginTop: "16px" }}
-          loading={props.loading}
-        />
-      </Container>
-    </div>
+        <Input type="email" />
+      </Form.Item>
+
+      <Form.Item
+        label="Password"
+        name="password"
+        rules={[
+          { required: true },
+          {
+            validator: (_, val) =>
+              isValidPassword(val)
+                ? Promise.resolve()
+                : Promise.reject("Must contain atleast 6 characters"),
+          },
+        ]}
+      >
+        <Input.Password />
+      </Form.Item>
+
+      <Form.Item {...tailLayout}>
+        <Button loading={loading} type="primary" htmlType="submit">
+          Login
+        </Button>
+      </Form.Item>
+    </Form>
   );
-});
+};
+
+export default connect(({ auth }) => ({ loading: auth.loading.login }), {
+  login: loginWithEmail,
+})(Login);

@@ -1,5 +1,3 @@
-import { messaging } from "./firebase_config";
-
 export const verifyEnum = (value, enums) => {
   if (!enums.includes(value))
     throw `invalid enum type: ${value}. Expected on of ${enums.join(" | ")}`;
@@ -36,25 +34,4 @@ export const removeKey = (obj, key) => {
 
 export const delay = (millis) => new Promise((res) => setTimeout(res, millis));
 
-export const getDeviceId = () => "dummy-id";
-
-export const checkAndUpdateToken = async (tokenMap, ref) => {
-  //get previouslly stored token from the user's FCM token map
-  const deviceId = getDeviceId();
-  const storedToken = tokenMap[deviceId];
-
-  //get the new FCM token if possible
-  try {
-    const currentToken = await messaging().getToken();
-    if (currentToken !== storedToken)
-      //if token refreshed then update it in the db
-      await ref.update({
-        ["fcmTokens." + deviceId]: currentToken,
-      });
-  } catch (e) {
-    throw e;
-  }
-};
-
-export const getProxyUrl = (url) =>
-  "https://pacific-gorge-86477.herokuapp.com/" + url;
+//more utility functions here

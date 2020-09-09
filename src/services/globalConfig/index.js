@@ -35,6 +35,4 @@ let GlobalConfig = {
   get_value,
 };
 
-GlobalConfig.get_value("price", "tankerGallons");
-
 export default GlobalConfig;

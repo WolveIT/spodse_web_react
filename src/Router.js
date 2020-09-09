@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Switch,
   Route as RouterRoute,
@@ -7,8 +7,6 @@ import {
   BrowserRouter,
 } from "react-router-dom";
 import { connect } from "dva";
-import { AlertWrapper } from "./components/Alert";
-import { DialogContext } from "./components/AlertPopup";
 import PageSpinner from "./components/Spinner/PageSpinner";
 import { routes } from "./utils/config";
 
@@ -17,24 +15,63 @@ import EmptyLayout from "./layouts/EmptyLayout";
 import AuthLayout from "./layouts/AuthLayout";
 import DashboardLayout from "./layouts/DashboardLayout";
 
-// export const history = createBrowserHistory();
+const routeRenderer = (
+  routes,
+  prefix = "",
+  basePath = "",
+  parentConfig = {}
+) => {
+  return routes.map((route, i) => {
+    if (route.subRoutes) {
+      //if a root with child roots has it's own path and corresponding component
+      //then it should be rendered as a seperate route
+      if (route.route?.path && route.component)
+        return (
+          <>
+            {routeRenderer(
+              route.subRoutes,
+              prefix + i + ".",
+              basePath + route.route?.path || "",
+              route
+            )}
+            <Route
+              key={prefix + i}
+              layoutType={route.layoutType || parentConfig.layoutType}
+              authType={route.authType || parentConfig.authType}
+              {...route.route}
+              path={basePath + route.route.path}
+            >
+              <route.component />
+            </Route>
+          </>
+        );
+
+      return routeRenderer(
+        route.subRoutes,
+        prefix + i + ".",
+        basePath + route.route?.path || "",
+        route
+      );
+    }
+
+    return (
+      <Route
+        key={prefix + i}
+        layoutType={route.layoutType || parentConfig.layoutType}
+        authType={route.authType || parentConfig.authType}
+        {...route.route}
+        path={basePath + route.route.path}
+      >
+        <route.component />
+      </Route>
+    );
+  });
+};
+
 export default function Router() {
   return (
     <BrowserRouter>
-      <DialogContext />
-      <AlertWrapper />
-      <Switch>
-        {routes.map((config, i) => (
-          <Route
-            key={i.toString()}
-            layoutType={config.layoutType}
-            authType={config.authType}
-            {...config.route}
-          >
-            <config.component />
-          </Route>
-        ))}
-      </Switch>
+      <Switch>{routeRenderer(routes)}</Switch>
     </BrowserRouter>
   );
 }

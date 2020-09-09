@@ -6,3 +6,16 @@ body {
 a {
   text-decoration: none;
 }
+
+.show-on-xs {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .hide-on-xs {
+    display: none;
+  }
+  .show-on-xs {
+    display: block;
+  }
+}

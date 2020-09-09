@@ -16,12 +16,11 @@ export default function PageSpinner({ text, centerProps, spinnerProps }) {
         }}
       >
         <Spin
-          indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}
+          indicator={<LoadingOutlined style={{ fontSize: 28 }} spin />}
           tip={text}
           size="large"
           {...spinnerProps}
         />
-        <Typography {...textProps}>{text}</Typography>
       </div>
     </Center>
   );

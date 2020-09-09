@@ -1,7 +1,6 @@
-import Auth from "../services/auth";
+import Auth from "../services/mockAuth";
 import { localErrorHandler } from "../utils/errorHandler";
-import Alert from "../components/Alert";
-import AlertPopup from "../components/AlertPopup";
+import { message } from "antd";
 
 const namespace = "auth";
 
@@ -32,10 +31,7 @@ export default {
         yield put(startLoading("login"));
         yield call(Auth.login_with_email, email, password);
         yield put(stopLoading("login"));
-        Alert.show({
-          type: "success",
-          text: "Logged in successfully!",
-        });
+        message.success("Logged in successfully!");
       } catch (error) {
         localErrorHandler({ namespace, error, stopLoading: "login" });
       }
@@ -46,10 +42,7 @@ export default {
         yield put(startLoading("logout"));
         yield call(Auth.logout);
         yield put(stopLoading("logout"));
-        Alert.show({
-          type: "info",
-          text: "successfully logged out!",
-        });
+        message.info("successfully logged out!");
       } catch (error) {
         localErrorHandler({ namespace, error, stopLoading: "logout" });
       }
@@ -61,9 +54,11 @@ export default {
       return Auth.subscribe((user) => {
         if (user) {
           //if logged in
+          console.log("Logged in");
           dispatch({ type: "setUser", user });
         } else {
           //if logged out
+          console.log("Logged out");
           dispatch({ type: "clearUser" });
         }
       });
