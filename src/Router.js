@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import {
   Switch,
   Route as RouterRoute,
@@ -21,51 +21,33 @@ const routeRenderer = (
   basePath = "",
   parentConfig = {}
 ) => {
-  return routes.map((route, i) => {
-    if (route.subRoutes) {
-      //if a root with child roots has it's own path and corresponding component
-      //then it should be rendered as a seperate route
-      if (route.route?.path && route.component)
-        return (
-          <>
-            {routeRenderer(
-              route.subRoutes,
-              prefix + i + ".",
-              basePath + route.route?.path || "",
-              route
-            )}
-            <Route
-              key={prefix + i}
-              layoutType={route.layoutType || parentConfig.layoutType}
-              authType={route.authType || parentConfig.authType}
-              {...route.route}
-              path={basePath + route.route.path}
-            >
-              <route.component />
-            </Route>
-          </>
-        );
-
-      return routeRenderer(
-        route.subRoutes,
-        prefix + i + ".",
-        basePath + route.route?.path || "",
-        route
+  const allRoutes = [];
+  routes.forEach((route, i) => {
+    if (route.subRoutes)
+      allRoutes.push(
+        routeRenderer(
+          route.subRoutes,
+          prefix + i + ".",
+          basePath + route.route?.path || "",
+          route
+        )
       );
-    }
 
-    return (
-      <Route
-        key={prefix + i}
-        layoutType={route.layoutType || parentConfig.layoutType}
-        authType={route.authType || parentConfig.authType}
-        {...route.route}
-        path={basePath + route.route.path}
-      >
-        <route.component />
-      </Route>
-    );
+    if (route.route?.path && route.component)
+      allRoutes.push(
+        <Route
+          key={prefix + i}
+          layoutType={route.layoutType || parentConfig.layoutType}
+          authType={route.authType || parentConfig.authType}
+          {...route.route}
+          path={basePath + route.route.path}
+        >
+          <route.component />
+        </Route>
+      );
   });
+
+  return allRoutes;
 };
 
 export default function Router() {

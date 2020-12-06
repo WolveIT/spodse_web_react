@@ -13,13 +13,11 @@ export const firebaseConfig = {
 
 /****************** firestore refs ******************/
 const users = db().collection("users");
-const orders = db().collection("orders");
 const config = db().collection("config");
 /*****************************************/
 
 export const refs = {
   users,
-  orders,
   config,
 };
 
