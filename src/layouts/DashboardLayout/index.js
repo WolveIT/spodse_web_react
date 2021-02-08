@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import Sidebar from "./Sidebar";
+import Sidebar from "./sidebar";
 import Header from "./Header";
 import { Layout } from "antd";
 import { connect } from "dva";
