@@ -9,11 +9,13 @@ import {
 import { connect } from "dva";
 import PageSpinner from "./components/Spinner/PageSpinner";
 import { routes } from "./utils/config";
+import { setComputedRoutes } from "./models/router";
 
 //layouts
 import EmptyLayout from "./layouts/EmptyLayout";
 import AuthLayout from "./layouts/AuthLayout";
 import DashboardLayout from "./layouts/DashboardLayout";
+import { getRoutePath } from "./utils/utils";
 
 const routeRenderer = (
   routes,
@@ -22,41 +24,56 @@ const routeRenderer = (
   parentConfig = {}
 ) => {
   const allRoutes = [];
-  routes.forEach((route, i) => {
-    if (route.subRoutes)
-      allRoutes.push(
-        routeRenderer(
-          route.subRoutes,
-          prefix + i + ".",
-          basePath + route.route?.path || "",
-          route
-        )
-      );
+  const computedRoutes = [];
 
-    if (route.route?.path && route.component)
+  routes.forEach((route, i) => {
+    const routePath = getRoutePath(basePath, route.route?.path || "");
+    if (route.subRoutes) {
+      const [ar, cr] = routeRenderer(
+        route.subRoutes,
+        prefix + i + ".",
+        routePath,
+        route
+      );
+      allRoutes.push(...ar);
+      computedRoutes.push(...cr);
+    }
+
+    if (route.route?.path && route.component) {
       allRoutes.push(
         <Route
           key={prefix + i}
           layoutType={route.layoutType || parentConfig.layoutType}
           authType={route.authType || parentConfig.authType}
           {...route.route}
-          path={basePath + route.route.path}
+          path={routePath}
         >
           <route.component />
         </Route>
       );
+      computedRoutes.push({
+        ...route,
+        key: prefix + i,
+        route: { ...route.route, path: routePath },
+      });
+    }
   });
 
-  return allRoutes;
+  return [allRoutes, computedRoutes];
 };
 
-export default function Router() {
+export default connect(undefined, { setComputedRoutes })(function Router({
+  setComputedRoutes,
+}) {
+  const [ar, cr] = routeRenderer(routes);
+  setComputedRoutes(cr);
+
   return (
     <BrowserRouter>
-      <Switch>{routeRenderer(routes)}</Switch>
+      <Switch>{ar}</Switch>
     </BrowserRouter>
   );
-}
+});
 
 const LayoutWrapper = ({ type, children }) => {
   switch (type) {

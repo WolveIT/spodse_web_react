@@ -1,9 +1,9 @@
 import React, { useCallback } from "react";
 import { Menu } from "antd";
 import { routes } from "../../utils/config";
-import { Link } from "react-router-dom";
-import { setSelectedMenuKey } from "../../models/router";
+import { Link, useLocation, matchPath } from "react-router-dom";
 import { connect } from "dva";
+import { getRoutePath } from "../../utils/utils";
 const { SubMenu } = Menu;
 
 function getParentKeys(key, arr = []) {
@@ -15,45 +15,46 @@ function getParentKeys(key, arr = []) {
   return getParentKeys(key, arr);
 }
 
-export default connect(
-  ({ router }) => ({ selectedMenuKey: router.selectedMenuKey }),
-  { setSelectedMenuKey }
-)(function Sidebar({ selectedMenuKey, setSelectedMenuKey }) {
-  const menuRenderer = useCallback((routes, prefix = "", basePath = "") => {
-    return routes
-      .filter((route) => route.menuItem)
-      .map((route, i) => {
-        if (route.subRoutes)
-          return (
-            <SubMenu key={prefix + i} icon={<route.icon />} title={route.title}>
-              {menuRenderer(
-                route.subRoutes,
-                prefix + i + ".",
-                basePath + route.route?.path || ""
-              )}
-            </SubMenu>
-          );
-        return (
-          <Menu.Item icon={<route.icon />} key={prefix + i}>
-            <Link
-              onClick={() => setSelectedMenuKey(prefix + i)}
-              to={basePath + route.route.path}
-            >
-              {route.title}
-            </Link>
-          </Menu.Item>
-        );
-      });
-  });
+export default connect(({ router }) => ({ cr: router.computedRoutes }))(
+  function Sidebar({ cr }) {
+    const menuRenderer = useCallback((routes, prefix = "", basePath = "") => {
+      return routes
+        .filter((route) => route.menuItem)
+        .map((route, i) => {
+          const path = getRoutePath(basePath, route.route?.path || "");
 
-  return (
-    <Menu
-      defaultOpenKeys={getParentKeys(selectedMenuKey)}
-      selectedKeys={[selectedMenuKey]}
-      mode="inline"
-      theme="dark"
-    >
-      {menuRenderer(routes)}
-    </Menu>
-  );
-});
+          if (route.subRoutes) {
+            return (
+              <SubMenu
+                key={prefix + i}
+                icon={<route.icon />}
+                title={route.title}
+              >
+                {menuRenderer(route.subRoutes, prefix + i + ".", path)}
+              </SubMenu>
+            );
+          }
+
+          return (
+            <Menu.Item icon={<route.icon />} key={prefix + i}>
+              <Link to={path}>{route.title}</Link>
+            </Menu.Item>
+          );
+        });
+    }, []);
+
+    const pathname = useLocation().pathname;
+    const selectedKey = cr.find((r) => matchPath(pathname, r.route)).key;
+
+    return (
+      <Menu
+        defaultOpenKeys={getParentKeys(selectedKey)}
+        selectedKeys={[selectedKey]}
+        mode="inline"
+        theme="dark"
+      >
+        {menuRenderer(routes)}
+      </Menu>
+    );
+  }
+);

@@ -20,8 +20,9 @@ const tailLayout = {
 };
 
 const Login = ({ login, loading }) => {
-  const onFinish = useCallback((values) =>
-    login(values.email, values.password)
+  const onFinish = useCallback(
+    (values) => login(values.email, values.password),
+    [login]
   );
 
   return (

@@ -17,7 +17,7 @@ function HeaderMenu({ loading, logout, displayName }) {
       message: "Are you sure you want to logout?",
       onOk: logout,
     });
-  });
+  }, [logout]);
 
   return (
     <Dropdown
@@ -34,14 +34,14 @@ function HeaderMenu({ loading, logout, displayName }) {
       }
       trigger={["click"]}
     >
-      <a
+      <span
         style={{
           color: "#eee",
           fontWeight: "500",
           display: "flex",
           alignItems: "center",
+          cursor: "pointer",
         }}
-        onClick={(e) => e.preventDefault()}
       >
         {displayName}
         <DownOutlined style={{ fontSize: 16, marginLeft: 8, marginTop: 2 }} />
@@ -49,7 +49,7 @@ function HeaderMenu({ loading, logout, displayName }) {
           style={{ marginLeft: 16 }}
           src="https://w7.pngwing.com/pngs/312/283/png-transparent-man-s-face-avatar-computer-icons-user-profile-business-user-avatar-blue-face-heroes.png"
         />
-      </a>
+      </span>
     </Dropdown>
   );
 }

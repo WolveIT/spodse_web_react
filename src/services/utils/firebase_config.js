@@ -7,9 +7,10 @@ export const auth = firebase.auth;
 
 export const firebaseConfig = {
   //place your firebase config here
+  projectId: "placeholder-project-id",
 };
 //initialize firebase with above config
-//firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(firebaseConfig);
 
 /****************** firestore refs ******************/
 const users = db().collection("users");

@@ -1,21 +1,18 @@
 const namespace = "router";
 
-const startLoading = (loadingType) => ({ type: "startLoading", loadingType });
-const stopLoading = (loadingType) => ({ type: "stopLoading", loadingType });
-
-export const setSelectedMenuKey = (key) => ({
-  type: `${namespace}/setState`,
-  selectedMenuKey: key,
-});
-
 export const toggleSidebarCollapsed = () => ({
   type: `${namespace}/toggleSidebarCollapsed`,
+});
+
+export const setComputedRoutes = (computedRoutes) => ({
+  type: `${namespace}/setState`,
+  computedRoutes,
 });
 
 export default {
   namespace,
   state: {
-    selectedMenuKey: "0",
+    computedRoutes: undefined,
     sidebarCollapsed: false,
     loading: {},
   },

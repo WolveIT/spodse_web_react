@@ -19,13 +19,13 @@ const get = async (id) => {
 };
 const get_value = (id, key, fallback) => {
   const ref = refs.config.doc(id);
-  let seperator = seperatorIndex(key, ["[", "."]);
+  let si = seperatorIndex(key, ["[", "."]);
   let start = key;
   let stop = "";
 
-  if (seperator !== -1) {
-    start = key.slice(0, seperator - 1);
-    stop = key.slice(seperator);
+  if (si !== -1) {
+    start = key.slice(0, si - 1);
+    stop = key.slice(si);
   }
   return Firestore.get_value(ref, `${start}.value${stop}`, fallback);
 };

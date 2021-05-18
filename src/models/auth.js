@@ -1,6 +1,14 @@
-import Auth from "../services/mockAuth";
+import MockAuth from "../services/mockAuth";
+import FirebaseAuth from "../services/auth";
 import { localErrorHandler } from "../utils/errorHandler";
 import { message } from "antd";
+import { authService } from "../utils/config";
+
+const AuthServices = {
+  mock: MockAuth,
+  firebase: FirebaseAuth,
+};
+const Auth = AuthServices[authService];
 
 const namespace = "auth";
 
