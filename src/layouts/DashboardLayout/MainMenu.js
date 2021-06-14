@@ -3,7 +3,7 @@ import { Menu } from "antd";
 import { routes } from "../../utils/config";
 import { Link, useLocation, matchPath } from "react-router-dom";
 import { connect } from "dva";
-import { getRoutePath } from "../../utils/utils";
+import { getRoutePath } from "utils";
 const { SubMenu } = Menu;
 
 function getParentKeys(key, arr = []) {
@@ -16,7 +16,7 @@ function getParentKeys(key, arr = []) {
 }
 
 export default connect(({ router }) => ({ cr: router.computedRoutes }))(
-  function Sidebar({ cr }) {
+  function MainMenu({ cr, height }) {
     const menuRenderer = useCallback((routes, prefix = "", basePath = "") => {
       return routes
         .filter((route) => route.menuItem)
@@ -48,6 +48,7 @@ export default connect(({ router }) => ({ cr: router.computedRoutes }))(
 
     return (
       <Menu
+        style={{ height }}
         defaultOpenKeys={getParentKeys(selectedKey)}
         selectedKeys={[selectedKey]}
         mode="inline"

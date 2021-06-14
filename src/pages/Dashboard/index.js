@@ -1,6 +1,6 @@
 import React from "react";
 import PlaceholderPage from "../../components/PlaceholderPage";
 
-export default function Home() {
-  return <PlaceholderPage title="Home Page" />;
+export default function Dashboard() {
+  return <PlaceholderPage title="Dashboard Page" />;
 }

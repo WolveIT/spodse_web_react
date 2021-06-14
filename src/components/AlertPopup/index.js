@@ -1,6 +1,20 @@
 import React from "react";
 import { Modal } from "antd";
 import { ExclamationCircleOutlined } from "@ant-design/icons";
+import { globalErrorHandler } from "../../utils/errorHandler";
+
+function handleCb(cb) {
+  if (typeof cb !== "function") return cb;
+  return function () {
+    const res = cb();
+    if (res instanceof Promise) {
+      return new Promise((_res) => {
+        res.catch(globalErrorHandler).finally(_res);
+      });
+    }
+    return res;
+  };
+}
 
 export default function AlertPopup({
   title,
@@ -17,8 +31,8 @@ export default function AlertPopup({
     content: message,
     okText,
     cancelText,
-    onOk,
-    onCancel,
+    onOk: handleCb(onOk),
+    onCancel: handleCb(onCancel),
     maskClosable: cancellable,
     cancelButtonProps: {
       style: typeof onCancel === "function" ? { display: "none" } : undefined,

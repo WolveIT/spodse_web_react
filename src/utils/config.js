@@ -1,9 +1,13 @@
-import React from "react";
-import { DashboardOutlined } from "@ant-design/icons";
+import {
+  CalendarOutlined,
+  DashboardOutlined,
+  PlusCircleOutlined,
+  SettingOutlined,
+  UnorderedListOutlined,
+} from "@ant-design/icons";
 
-export const authService = "mock"; //possible values: 'firebase', 'mock'
+export const authService = "firebase"; //possible values: 'firebase', 'mock'
 
-const PlaceholderPage = require("../components/PlaceholderPage").default;
 //order of the rotues matter as they are rendered within the main 'Switch'
 //component as they are ordered in the array
 export const routes = [
@@ -17,81 +21,66 @@ export const routes = [
     },
     layoutType: "dashboard", //configure your own layout types in the Router.js file (default:'empty') (inherited by sub routes)
     authType: "only-authenticated", //authentication type, configure in Router.js file (default:'none') (inherited by sub routes)
-    component: require("../pages/Home").default, //component to render in the designated layout's children (if no component is given, no route is created)
+    component: require("pages/Dashboard").default, //component to render in the designated layout's children (if no component is given, no route is created)
     menuItem: true, //should this route be showed in the nav bar as a menu item (NOT inherited by sub routes)
   },
   {
-    title: "Parent",
-    icon: DashboardOutlined,
+    title: "Events",
+    icon: CalendarOutlined,
     route: {
-      path: "/parent",
+      path: "/events",
     },
     layoutType: "dashboard",
     authType: "only-authenticated",
     menuItem: true,
     subRoutes: [
       {
-        title: "Child 1",
-        icon: DashboardOutlined,
+        title: "New Event",
+        icon: PlusCircleOutlined,
         route: {
-          path: "child1",
+          path: "new_event",
           exact: true,
         },
-        layoutType: "dashboard",
-        authType: "only-authenticated",
-        component: () => <PlaceholderPage title="Child 1" />,
+        component: require("pages/NewEvent").default,
         menuItem: true,
       },
       {
-        title: "Child 2",
-        icon: DashboardOutlined,
+        title: "My Events",
+        icon: UnorderedListOutlined,
         route: {
-          path: "child2",
+          path: "my_events",
+          exact: true,
         },
-        layoutType: "dashboard",
-        authType: "only-authenticated",
-        component: () => <PlaceholderPage title="Child 2" />,
+        component: require("pages/MyEvents").default,
         menuItem: true,
-        subRoutes: [
-          {
-            title: "Grand Child 1",
-            icon: DashboardOutlined,
-            route: {
-              path: "grand-child1",
-              exact: true,
-            },
-            layoutType: "dashboard",
-            authType: "only-authenticated",
-            component: () => <PlaceholderPage title="Grand Child 1" />,
-            menuItem: true,
-          },
-          {
-            title: "Grand Child 2",
-            icon: DashboardOutlined,
-            route: {
-              path: "grand-child2",
-              exact: true,
-            },
-            layoutType: "dashboard",
-            authType: "only-authenticated",
-            component: () => <PlaceholderPage title="Grand Child 2" />,
-            menuItem: true,
-          },
-          {
-            title: "Users",
-            icon: DashboardOutlined,
-            route: {
-              path: "/users/:username",
-              exact: true,
-            },
-            layoutType: "dashboard",
-            authType: "only-authenticated",
-            component: require("../pages/Users").default,
-            menuItem: false,
-          },
-        ],
+      },
+      {
+        route: {
+          path: ":eventId/edit",
+        },
+        component: require("pages/NewEvent").default,
+        menuItem: false,
+      },
+      {
+        route: {
+          path: ":eventId",
+        },
+        component: require("pages/EventDetail").default,
+        menuItem: false,
       },
     ],
+  },
+  {
+    title: "Settings",
+    icon: SettingOutlined,
+    route: {
+      path: "/settings",
+      exact: true,
+    },
+    layoutType: "dashboard",
+    authType: "only-authenticated",
+    component: require("pages/Settings").default,
+    menuItem: true,
   },
   {
     route: {

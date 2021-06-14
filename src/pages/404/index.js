@@ -4,5 +4,10 @@ import { useLocation } from "react-router-dom";
 
 export default function NotFound() {
   const location = useLocation();
-  return <PlaceholderPage title={`Oops! No match for ${location.pathname}`} />;
+  return (
+    <PlaceholderPage
+      style={{ height: "100vh" }}
+      title={`Oops! No match for ${location.pathname}`}
+    />
+  );
 }

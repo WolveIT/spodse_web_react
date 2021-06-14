@@ -1,12 +1,20 @@
 import React from "react";
 import Center from "../Center";
 import { Spin } from "antd";
-import { LoadingOutlined } from "@ant-design/icons";
 
-export default function PageSpinner({ text, centerProps, spinnerProps }) {
+export default function PageSpinner({
+  text,
+  fixed = true,
+  centerProps,
+  spinnerProps,
+}) {
   return (
     <Center
-      style={{ position: "fixed", left: 0, right: 0, top: 0, bottom: 0 }}
+      style={
+        fixed
+          ? { position: "fixed", left: 0, right: 0, top: 0, bottom: 0 }
+          : { height: "100%", width: "100%" }
+      }
       {...centerProps}
     >
       <div
@@ -15,12 +23,7 @@ export default function PageSpinner({ text, centerProps, spinnerProps }) {
           textAlign: "center",
         }}
       >
-        <Spin
-          indicator={<LoadingOutlined style={{ fontSize: 28 }} spin />}
-          tip={text}
-          size="large"
-          {...spinnerProps}
-        />
+        <Spin tip={text} size="large" {...spinnerProps} />
       </div>
     </Center>
   );

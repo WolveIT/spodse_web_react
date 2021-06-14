@@ -3,8 +3,10 @@ import dva from "dva";
 import Router from "./Router";
 import auth from "./models/auth";
 import router from "./models/router";
+import event from "./models/event";
 import { globalErrorHandler } from "./utils/errorHandler";
 import "antd/dist/antd.css";
+import "styles/global.scss";
 
 export const app = dva({
   onError: globalErrorHandler,
@@ -12,6 +14,7 @@ export const app = dva({
 
 app.model(auth);
 app.model(router);
+app.model(event);
 
 app.router(() => <Router />);
 export default app.start();
