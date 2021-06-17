@@ -23,8 +23,9 @@ import Event from "../../services/event";
 import { globalErrorHandler } from "../../utils/errorHandler";
 import { useLocation, useParams } from "react-router";
 import { connect } from "dva";
-import { fetchEvent } from "../../models/event";
+import { fetchEvent, setFormData } from "../../models/event";
 import PageSpinner from "../../components/Spinner/PageSpinner";
+import EventPreview from "../../components/EventPreview";
 
 const genres = ["food and drink", "festival", "event"];
 
@@ -84,7 +85,7 @@ export const disabledTime = (d, minDate, maxDate) => {
   };
 };
 
-function NewEvent({ event, fetchEvent, fetchLoading }) {
+function NewEvent({ event, fetchEvent, fetchLoading, setFormData }) {
   const eventId = useParams().eventId;
   const pathname = useLocation().pathname;
   const editMode = pathname.slice(pathname.lastIndexOf("/") + 1) === "edit";
@@ -137,6 +138,10 @@ function NewEvent({ event, fetchEvent, fetchLoading }) {
     [form]
   );
 
+  const onValuesChange = useCallback(() => {
+    setFormData(form.getFieldsValue());
+  }, []);
+
   if (editMode && (!event || fetchLoading))
     return <PageSpinner spinnerProps={{ size: "default" }} fixed={false} />;
 
@@ -148,6 +153,8 @@ function NewEvent({ event, fetchEvent, fetchLoading }) {
       <Form
         style={{ marginTop: 16 }}
         onFinish={onSubmit}
+        onFinishFailed={console.log}
+        onValuesChange={onValuesChange}
         form={form}
         name="new-event-form"
       >
@@ -329,6 +336,7 @@ function NewEvent({ event, fetchEvent, fetchLoading }) {
           ) : null}
         </Form.Item>
       </Form>
+      <EventPreview />
     </>
   );
 }
@@ -338,5 +346,5 @@ export default connect(
     event: event.current,
     fetchLoading: event.loading.fetchCurrent,
   }),
-  { fetchEvent }
+  { fetchEvent, setFormData }
 )(NewEvent);

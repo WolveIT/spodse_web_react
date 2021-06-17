@@ -4,10 +4,11 @@ import { connect } from "dva";
 import AlertPopup from "../../components/AlertPopup";
 import Hover from "../../components/Hover";
 import Theme from "../../utils/theme";
-import { saveEvent } from "../../models/event";
+import { deleteEventFromState, saveEvent } from "../../models/event";
 import { useHistory } from "react-router-dom";
-import { Spin } from "antd";
+import { message, Spin } from "antd";
 import Event from "../../services/event";
+import { dispatch } from "../../utils";
 
 function EventActions({
   event,
@@ -32,7 +33,11 @@ function EventActions({
     AlertPopup({
       title: "Delete Event",
       message: "Are you sure you want to delete this event?",
-      onOk: () => Event.delete(event.id),
+      onOk: () =>
+        Event.delete(event.id).then(() => {
+          dispatch(deleteEventFromState(event.id));
+          message.success("Event deleted successfully!");
+        }),
     });
   }, [event]);
 

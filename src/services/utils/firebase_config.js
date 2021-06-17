@@ -5,7 +5,7 @@ import "firebase/firestore";
 export const db = firebase.firestore;
 export const auth = firebase.auth;
 export const storage = firebase.storage;
-export const functions = firebase.functions;
+export const functions = () => firebase.app().functions("europe-west1");
 
 export const firebaseConfig = {
   apiKey: "AIzaSyBNL12vZzADKzk_TSVgYRn0UVDRK2VoYVs",

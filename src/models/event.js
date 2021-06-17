@@ -1,7 +1,9 @@
+import { message } from "antd";
 import Event from "../services/event";
 import Firestore from "../services/firestore";
 import { currUser, refs } from "../services/utils/firebase_config";
 import { PaginatedList } from "../services/utils/paginated_list";
+import { delay } from "../services/utils/utils";
 import { dispatch } from "../utils";
 import { localErrorHandler } from "../utils/errorHandler";
 
@@ -34,6 +36,17 @@ export const deleteEvent = (eventId) => ({
   eventId,
 });
 
+export const deleteEventFromState = (eventId) => ({
+  type: `${namespace}/deleteFromList`,
+  entity: "list",
+  element: (el) => el.id === eventId,
+});
+
+export const setFormData = (data) => ({
+  type: `${namespace}/setState`,
+  formData: data,
+});
+
 let noMore = false;
 const perBatch = 15;
 export const loadEvents = (mode) => ({
@@ -48,6 +61,7 @@ export default {
     createEventProgress: undefined,
     list: [],
     listInstance: null,
+    formData: {},
     loading: {
       fetchCurrent: false,
       createEvent: false,
@@ -150,7 +164,9 @@ export default {
       try {
         yield put(startLoading("delete"));
         yield call(Event.delete, eventId);
+        yield put(deleteEventFromState(eventId));
         yield put(stopLoading("delete"));
+        message.success("Event deleted successfully!");
       } catch (error) {
         localErrorHandler({ namespace, error, stopLoading: "delete" });
       }
@@ -171,6 +187,14 @@ export default {
     },
     appendList(state, { list }) {
       return { ...state, list: state.list.concat(list) };
+    },
+    deleteFromList(state, { entity, element }) {
+      return {
+        ...state,
+        [entity]: state[entity].filter((el) =>
+          typeof element === "function" ? !element(el) : el !== element
+        ),
+      };
     },
   },
 };

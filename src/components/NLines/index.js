@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function NLines({ lines = 3, children }) {
+export default function NLines({ lines = 3, children, style }) {
   return (
     <div
       style={{
@@ -11,6 +11,7 @@ export default function NLines({ lines = 3, children }) {
         textOverflow: "ellipsis",
         display: "-webkit-box",
         WebkitBoxOrient: "vertical",
+        ...(style || {}),
       }}
     >
       {children}

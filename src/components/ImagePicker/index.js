@@ -28,7 +28,7 @@ export default function ImagePicker({
 
   useEffect(() => {
     onChange && onChange(images.filter(isValid));
-  }, [images.length]);
+  }, [images]);
 
   useEffect(() => {
     if (
