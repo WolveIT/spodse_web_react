@@ -38,3 +38,10 @@ a {
     display: block;
   }
 }
+
+.events-table {
+  tr.ant-table-row {
+    cursor: pointer;
+    z-index: 1;
+  }
+}

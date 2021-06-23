@@ -16,50 +16,69 @@ function EventActions({
   showView = true,
   showEdit = true,
   showDelete = true,
+  iconSize = 16,
 }) {
   const history = useHistory();
 
-  const onView = useCallback(() => {
-    saveEvent(event);
-    history.push(`/events/${event.id}`);
-  }, [event]);
+  const onView = useCallback(
+    (e) => {
+      e.stopPropagation();
+      saveEvent(event);
+      history.push(`/events/${event.id}`);
+    },
+    [event]
+  );
 
-  const onEdit = useCallback(() => {
-    saveEvent(event);
-    history.push(`/events/${event.id}/edit`);
-  }, [event]);
+  const onEdit = useCallback(
+    (e) => {
+      e.stopPropagation();
+      saveEvent(event);
+      history.push(`/events/${event.id}/edit`);
+    },
+    [event]
+  );
 
-  const onDelete = useCallback(() => {
-    AlertPopup({
-      title: "Delete Event",
-      message: "Are you sure you want to delete this event?",
-      onOk: () =>
-        Event.delete(event.id).then(() => {
-          dispatch(deleteEventFromState(event.id));
-          message.success("Event deleted successfully!");
-        }),
-    });
-  }, [event]);
+  const onDelete = useCallback(
+    (e) => {
+      e.stopPropagation();
+      AlertPopup({
+        title: "Delete Event",
+        message: "Are you sure you want to delete this event?",
+        onOk: () =>
+          Event.delete(event.id).then(() => {
+            dispatch(deleteEventFromState(event.id));
+            message.success("Event deleted successfully!");
+          }),
+      });
+    },
+    [event]
+  );
 
   return (
-    <div style={{ display: "flex", alignItems: "center" }}>
+    <div style={{ display: "flex", alignItems: "center", zIndex: 99 }}>
       {showView && (
         <Hover
-          element={<EyeOutlined onClick={onView} />}
-          style={{ marginRight: 8, transition: "color 0.4s" }}
+          element={
+            <EyeOutlined style={{ fontSize: iconSize }} onClick={onView} />
+          }
+          style={{ marginRight: iconSize / 1.5, transition: "color 0.4s" }}
           hoverStyle={{ color: Theme.get() }}
         />
       )}
       {showEdit && (
         <Hover
-          element={<EditOutlined onClick={onEdit} />}
-          style={{ marginRight: 8 }}
+          element={
+            <EditOutlined style={{ fontSize: iconSize }} onClick={onEdit} />
+          }
+          style={{ marginRight: iconSize / 1.5 }}
           hoverStyle={{ color: Theme.get(), transition: "color 0.4s" }}
         />
       )}
       {showDelete && (
         <Hover
-          element={<DeleteOutlined onClick={onDelete} />}
+          element={
+            <DeleteOutlined style={{ fontSize: iconSize }} onClick={onDelete} />
+          }
           style={{ transition: "color 0.4s" }}
           hoverStyle={{ color: Theme.get() }}
         />

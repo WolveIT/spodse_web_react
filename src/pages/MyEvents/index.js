@@ -1,12 +1,13 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useEffect } from "react";
 import { connect } from "dva";
 import { Table, Spin } from "antd";
 import moment from "moment";
-import { loadEvents } from "../../models/event";
+import { loadEvents, saveEvent } from "../../models/event";
 import { throttle } from "lodash";
 import EventActions from "./Actions";
 import PrivateTag from "./PrivateTag";
 import OutOf from "../../components/OutOf";
+import { useHistory } from "react-router-dom";
 
 function AllEvents(props) {
   useEffect(() => {
@@ -26,6 +27,8 @@ function AllEvents(props) {
     table.addEventListener("scroll", onTableScroll);
     return () => table.removeEventListener("scroll", onTableScroll);
   }, []);
+
+  const history = useHistory();
 
   const columns = [
     {
@@ -80,7 +83,7 @@ function AllEvents(props) {
     {
       title: "Actions",
       key: "actions",
-      render: (_, event) => <EventActions event={event} />,
+      render: (_, event) => <EventActions showView={false} event={event} />,
     },
   ];
 
@@ -102,6 +105,12 @@ function AllEvents(props) {
         columns={columns}
         pagination={false}
         loading={props.loading && !props.events}
+        onRow={(item) => ({
+          onClick: (_) => {
+            props.saveEvent(item);
+            history.push(`/events/${item.id}`);
+          },
+        })}
         dataSource={props.events}
         footer={(data) => (
           <div
@@ -129,5 +138,6 @@ export default connect(
   }),
   {
     loadEvents,
+    saveEvent,
   }
 )(AllEvents);
