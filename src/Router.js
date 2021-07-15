@@ -8,7 +8,7 @@ import {
 } from "react-router-dom";
 import { connect } from "dva";
 import PageSpinner from "./components/Spinner/PageSpinner";
-import { routes } from "./utils/config";
+import { routeCustomWrapper, routes } from "./utils/config";
 import { setComputedRoutes } from "./models/router";
 
 //layouts
@@ -127,6 +127,8 @@ const AuthWrapper = connect(({ auth }) => ({
   }
 });
 
+const CustomWrapper = routeCustomWrapper || (({ children }) => children);
+
 const Route = ({
   authType = "none",
   layoutType = "empty",
@@ -135,9 +137,11 @@ const Route = ({
 }) => {
   return (
     <RouterRoute {...props}>
-      <AuthWrapper type={authType}>
-        <LayoutWrapper type={layoutType}>{children}</LayoutWrapper>
-      </AuthWrapper>
+      <CustomWrapper authType={authType} layoutType={layoutType} {...props}>
+        <AuthWrapper type={authType}>
+          <LayoutWrapper type={layoutType}>{children}</LayoutWrapper>
+        </AuthWrapper>
+      </CustomWrapper>
     </RouterRoute>
   );
 };

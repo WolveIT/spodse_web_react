@@ -7,7 +7,7 @@ import { Button, List } from "antd";
 import React, { useEffect, useState } from "react";
 import { openFile } from "../PopoverWidth";
 
-export default function FilePicer({
+export default function FilePicker({
   accept,
   multiple,
   onChange,

@@ -163,9 +163,17 @@ async function _delete(eventId) {
   return functions().httpsCallable("eventDelete")({ eventId });
 }
 
+async function invite_users({ eventId, emails }) {
+  return functions().httpsCallable("createMultipleEventInvites")({
+    eventId,
+    emails,
+  });
+}
+
 const Event = {
   create,
   update,
+  invite_users,
   delete: _delete,
 };
 

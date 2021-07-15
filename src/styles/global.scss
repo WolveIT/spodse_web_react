@@ -12,6 +12,12 @@ a {
   place-items: center;
 }
 
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .ellipsis {
   white-space: nowrap;
   overflow: hidden;
@@ -37,6 +43,10 @@ a {
   .show-on-xs {
     display: block;
   }
+}
+
+.ant-layout {
+  background-color: #fff !important;
 }
 
 .events-table {

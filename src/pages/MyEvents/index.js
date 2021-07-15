@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { connect } from "dva";
 import { Table, Spin } from "antd";
 import moment from "moment";
-import { loadEvents, saveEvent } from "../../models/event";
+import { fetchEvents, saveEvent } from "../../models/event";
 import { throttle } from "lodash";
 import EventActions from "./Actions";
 import PrivateTag from "./PrivateTag";
@@ -11,7 +11,7 @@ import { useHistory } from "react-router-dom";
 
 function AllEvents(props) {
   useEffect(() => {
-    props.loadEvents("reset");
+    props.fetchEvents(true);
     const table = document.querySelector(".events-table");
 
     const onTableScroll = throttle((e) => {
@@ -21,7 +21,7 @@ function AllEvents(props) {
       const delta = maxScroll - currentScroll;
       const remainingPercent = (delta / clientHeight) * 100;
 
-      if (remainingPercent < 10) props.loadEvents();
+      if (remainingPercent < 10) props.fetchEvents();
     }, 500);
 
     table.addEventListener("scroll", onTableScroll);
@@ -46,8 +46,8 @@ function AllEvents(props) {
       dataIndex: "startsAt",
       key: "schedule",
       render: (e, data) => {
-        const startsAt = moment(e.toDate());
-        const endsAt = moment(data.endsAt.toDate());
+        const startsAt = moment(e?.toDate());
+        const endsAt = moment(data.endsAt?.toDate());
         return (
           <span>
             {startsAt.format("D MMM YY")} - {startsAt.format("HH:mm")}
@@ -137,7 +137,7 @@ export default connect(
     loading: event.loading.list,
   }),
   {
-    loadEvents,
+    fetchEvents,
     saveEvent,
   }
 )(AllEvents);

@@ -3,6 +3,10 @@ import FirebaseAuth from "../services/auth";
 import { localErrorHandler } from "../utils/errorHandler";
 import { message } from "antd";
 import { authService } from "../utils/config";
+import Business from "../services/business";
+import Storage from "../services/storage";
+import { refs } from "../services/utils/firebase_config";
+import { globalState } from "../utils";
 
 const AuthServices = {
   mock: MockAuth,
@@ -17,7 +21,24 @@ export const loginWithEmail = (email, password) => ({
   email,
   password,
 });
+
+export const signup = ({ email, password, displayName, profilePicture }) => ({
+  type: `${namespace}/signup`,
+  email,
+  password,
+  displayName,
+  profilePicture,
+});
+
 export const logout = () => ({ type: `${namespace}/logout` });
+
+export const fetchCustomClaims = () => ({
+  type: `${namespace}/fetchCustomClaims`,
+});
+
+export const makeBusiness = () => ({
+  type: `${namespace}/makeBusiness`,
+});
 
 const startLoading = (loadingType) => ({ type: "startLoading", loadingType });
 const stopLoading = (loadingType) => ({ type: "stopLoading", loadingType });
@@ -26,8 +47,12 @@ export default {
   namespace,
   state: {
     user: undefined,
+    holdSetAuthUser: false,
+    customClaims: undefined,
     loading: {
       login: false,
+      signup: false,
+      makeBusiness: false,
       logout: false,
     },
   },
@@ -45,6 +70,53 @@ export default {
       }
     },
 
+    *signup({ email, password, displayName, profilePicture }, { put, call }) {
+      try {
+        yield put(startLoading("signup"));
+        yield put({ type: "setState", isBusinessEmail: undefined });
+        yield call(Auth.signup, {
+          email,
+          password,
+          displayName,
+        });
+        if (profilePicture)
+          yield put({ type: "setState", holdSetAuthUser: true });
+
+        const res = yield call(Auth.login_with_email, email, password);
+
+        if (profilePicture) {
+          const [imageUrl] = yield call(Storage.upload, {
+            uploadPath: `/ProfilePictures/${res.user.uid}/`,
+            files: profilePicture,
+          });
+          const updater = () =>
+            refs.users.doc(res.user.uid).update({ profilePicture: imageUrl });
+          yield call(updater);
+          yield put({
+            type: "setState",
+            holdSetAuthUser: false,
+            user: res.user,
+          });
+        }
+
+        yield put(stopLoading("signup"));
+      } catch (error) {
+        localErrorHandler({ namespace, error, stopLoading: "signup" });
+      }
+    },
+
+    *makeBusiness(_, { put, call }) {
+      try {
+        yield put(startLoading("makeBusiness"));
+        yield call(Business.make_business);
+        yield put(fetchCustomClaims());
+        yield put(stopLoading("makeBusiness"));
+        message.info("Business account created successfully!");
+      } catch (error) {
+        localErrorHandler({ namespace, error, stopLoading: "makeBusiness" });
+      }
+    },
+
     *logout(_, { put, call }) {
       try {
         yield put(startLoading("logout"));
@@ -55,6 +127,19 @@ export default {
         localErrorHandler({ namespace, error, stopLoading: "logout" });
       }
     },
+
+    *fetchCustomClaims(_, { put, call, select }) {
+      try {
+        const prev = yield select((state) => state[namespace].customClaims);
+        if (prev) return;
+
+        const customClaims = yield call(Auth.get_claims, true);
+        yield put({ type: "setState", customClaims });
+      } catch (error) {
+        console.log("error: ", error);
+        localErrorHandler({ namespace, error });
+      }
+    },
   },
 
   subscriptions: {
@@ -62,12 +147,15 @@ export default {
       return Auth.subscribe((user) => {
         if (user) {
           //if logged in
-          console.log("Logged in");
-          dispatch({ type: "setUser", user });
+          dispatch(fetchCustomClaims());
+          if (!globalState()[namespace].holdSetAuthUser) {
+            console.log("Logged in");
+            dispatch({ type: "setUser", user });
+          }
         } else {
           //if logged out
           console.log("Logged out");
-          dispatch({ type: "clearUser" });
+          dispatch({ type: "setState", user: null, customClaims: undefined });
         }
       });
     },

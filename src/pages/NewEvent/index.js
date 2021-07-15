@@ -17,7 +17,7 @@ import TagsList from "../../components/TagsList";
 import ImagePicker from "../../components/ImagePicker";
 import Title from "antd/lib/typography/Title";
 import styles from "./index.module.scss";
-import FilePicer from "../../components/FilePicker";
+import FilePicker from "../../components/FilePicker";
 import Theme from "../../utils/theme";
 import Event from "../../services/event";
 import { globalErrorHandler } from "../../utils/errorHandler";
@@ -300,7 +300,11 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData }) {
             rules={[{ required: true, message: "File is required" }]}
             name="externalTicketsFile"
           >
-            <FilePicer width={240} multiple={false} />
+            <FilePicker
+              accept=".xlsx,.xls,.txt,.csv"
+              width={240}
+              multiple={false}
+            />
           </Form.Item>
         )}
 

@@ -6,6 +6,7 @@ import router from "./models/router";
 import event from "./models/event";
 import { globalErrorHandler } from "./utils/errorHandler";
 import "antd/dist/antd.css";
+import "react-perfect-scrollbar/dist/css/styles.css";
 import "styles/global.scss";
 
 export const app = dva({

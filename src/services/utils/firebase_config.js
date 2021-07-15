@@ -20,19 +20,43 @@ export const firebaseConfig = {
 //initialize firebase with above config
 firebase.initializeApp(firebaseConfig);
 
-/****************** firestore refs ******************/
+/****************** refs ******************/
 const users = db().collection("users");
+
+const userEventsGoing = (uid) =>
+  db().collection("users").doc(uid).collection("eventsGoing");
+
+const allUserEventsGoing = db().collectionGroup("eventsGoing");
+
+const userEventsOrganizing = (uid) =>
+  db().collection("users").doc(uid).collection("eventsOrganizing");
+
 const events = db().collection("events");
+
 const eventTickets = (eventId) =>
   events.doc(eventId).collection("private").doc("tickets");
+
+const eventInvites = (eventId) => events.doc(eventId).collection("invites");
+
+const tickets = db().collection("tickets");
+
 const config = db().collection("config");
+
+const test = db().collection("test");
+
 /*****************************************/
 
 export const refs = {
   users,
+  userEventsGoing,
+  allUserEventsGoing,
+  userEventsOrganizing,
   events,
   eventTickets,
+  eventInvites,
+  tickets,
   config,
+  test,
 };
 
 export const currUser = () => auth().currentUser;

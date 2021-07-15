@@ -3,6 +3,8 @@ import { Form, Input, Button } from "antd";
 import { isValidEmail, isValidPassword } from "../../utils/validations";
 import { loginWithEmail } from "../../models/auth";
 import { connect } from "dva";
+import { Link } from "react-router-dom";
+import Hover from "../../components/Hover";
 
 const layout = {
   labelCol: {
@@ -27,7 +29,7 @@ const Login = ({ login, loading }) => {
 
   return (
     <div style={{ textAlign: "center" }}>
-      <h1 style={{ marginBottom: 32 }}>Hacknosys</h1>
+      <h1 style={{ marginBottom: 32 }}>Login</h1>
       <Form style={{ textAlign: "left" }} {...layout} onFinish={onFinish}>
         <Form.Item
           label="Email"
@@ -67,6 +69,14 @@ const Login = ({ login, loading }) => {
           </Button>
         </Form.Item>
       </Form>
+      <div style={{ float: "right", fontSize: 12 }}>
+        New User?{" "}
+        <Hover hoverStyle={{ textDecoration: "underline" }}>
+          <Link to="/signup" style={{ fontWeight: "500" }}>
+            Signup
+          </Link>
+        </Hover>
+      </div>
     </div>
   );
 };

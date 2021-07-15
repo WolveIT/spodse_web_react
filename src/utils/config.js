@@ -5,6 +5,7 @@ import {
   SettingOutlined,
   UnorderedListOutlined,
 } from "@ant-design/icons";
+import RouteCustomWrapper from "../components/RouteCustomWrapper";
 
 export const authService = "firebase"; //possible values: 'firebase', 'mock'
 
@@ -100,8 +101,18 @@ export const routes = [
   },
   {
     route: {
+      path: "/no-account",
+    },
+    layoutType: "empty",
+    authType: "only-authenticated",
+    component: require("../pages/NoAccount").default,
+  },
+  {
+    route: {
       path: "/",
     },
     component: require("../pages/404").default,
   },
 ];
+
+export const routeCustomWrapper = RouteCustomWrapper;
