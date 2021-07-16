@@ -21,7 +21,7 @@ import FilePicker from "../../components/FilePicker";
 import Theme from "../../utils/theme";
 import Event from "../../services/event";
 import { globalErrorHandler } from "../../utils/errorHandler";
-import { useLocation, useParams } from "react-router";
+import { useLocation, useParams } from "react-router-dom";
 import { connect } from "dva";
 import { fetchEvent, setFormData } from "../../models/event";
 import PageSpinner from "../../components/Spinner/PageSpinner";

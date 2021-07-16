@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect } from "react";
 import { connect } from "dva";
-import { useParams } from "react-router";
+import { useParams } from "react-router-dom";
 import EventActions from "../MyEvents/Actions";
 import PageSpinner from "../../components/Spinner/PageSpinner";
 import {
