@@ -14,6 +14,7 @@ export default function LazyList({
   skeletonEntriesCount = 4,
   endReachedPercent = 80,
   throttling = 300,
+  containerStyle,
   ...props
 }) {
   const onScrollDown = useCallback(
@@ -33,7 +34,7 @@ export default function LazyList({
   );
 
   return (
-    <PerfectScrollBar onScrollDown={onScrollDown}>
+    <PerfectScrollBar style={containerStyle} onScrollDown={onScrollDown}>
       <List
         itemLayout="horizontal"
         {...props}

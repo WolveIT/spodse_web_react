@@ -83,7 +83,7 @@ function EventDetail({
   //add listener to the current event
   useEffect(() => {
     listenEvent(eventId);
-    loadGoing();
+    loadGoing(true);
     return () => {
       unsubEvent();
     };
@@ -259,11 +259,10 @@ function EventDetail({
                   Invite users
                 </div>
                 <UserSearch />
-                <Divider />
+                <Divider style={{ marginBottom: 8 }} />
               </>
             ) : null}
             <LazyList
-              listStyle={{ marginTop: allowNewInvites ? "-24px" : 0 }}
               listHeight={375}
               onEndReached={loadInvited}
               loading={invitedLoading}
