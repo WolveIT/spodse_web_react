@@ -117,6 +117,7 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData }) {
       data.startsAt = data.schedule[0].toDate();
       data.endsAt = data.schedule[1].toDate();
       data.closesAt = data.closesAt.toDate();
+      if (data.isPrivate === undefined) data.isPrivate = false;
       if (editMode) data.eventId = eventId;
       setProgress(0);
       Event[editMode ? "update" : "create"](data, setProgress)

@@ -15,6 +15,11 @@ export default class TagsList extends React.Component {
     };
   }
 
+  componentDidMount() {
+    if (typeof this.props.onChange === "function")
+      this.props.onChange(this.state.tags);
+  }
+
   componentDidUpdate(prevProps, prevState) {
     if (
       Array.isArray(this.props.value) &&
@@ -24,10 +29,10 @@ export default class TagsList extends React.Component {
       this.setState({ tags: this.props.value });
     }
 
-    if (typeof this.props.onChange !== "function") return;
-
-    if (this.state.tags.length === 0) this.props.onChange(undefined);
-    if (prevState.tags.length !== this.state.tags.length)
+    if (
+      typeof this.props.onChange === "function" &&
+      prevState.tags.length !== this.state.tags.length
+    )
       this.props.onChange(this.state.tags);
   }
 
