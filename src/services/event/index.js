@@ -32,7 +32,7 @@ async function parseTickets(csvFile) {
 function get_new_event_doc(data) {
   const doc = {
     ageLimit: data.ageLimit || null,
-    attendeesCount: data.attendeesCount || 0,
+    attendeesCount: 0,
     description: data.description || "",
     startsAt: data.startsAt,
     endsAt: data.endsAt,
@@ -46,6 +46,13 @@ function get_new_event_doc(data) {
     isPrivate: data.isPrivate,
     tags: data.tags || [],
     ticketAnswer: data.ticketAnswer,
+    likes: {},
+    stats: {
+      totalInvited: 0,
+      totalInvitesAccepted: 0,
+      totalValidators: 0,
+      totalWent: 0,
+    },
     createdAt: serverTimestamp(),
   };
 
@@ -152,6 +159,8 @@ async function update(data, progress) {
   delete newData.attendeesCount;
   delete newData.organizerId;
   delete newData.ticketAnswer;
+  delete newData.likes;
+  delete newData.stats;
   delete newData.createdAt;
   await refs.events.doc(data.eventId).set(newData, { merge: true });
   progress(100);
@@ -163,10 +172,39 @@ async function _delete(eventId) {
   return functions().httpsCallable("eventDelete")({ eventId });
 }
 
-async function invite_users({ eventId, emails }) {
+async function invite_users({ eventId, emails, message }) {
   return functions().httpsCallable("createMultipleEventInvites")({
     eventId,
     emails,
+    message,
+  });
+}
+
+export function remove_invited({ invitationId, eventId }) {
+  return functions().httpsCallable("eventRemoveInvite")({
+    eventId,
+    invitationId,
+  });
+}
+
+async function add_validators({ uids, eventId }) {
+  return functions().httpsCallable("eventAddValidators")({
+    eventId,
+    uids,
+  });
+}
+
+export function remove_validator({ uid, eventId }) {
+  return functions().httpsCallable("eventRemoveValidator")({
+    eventId,
+    uid,
+  });
+}
+
+export function remove_user({ uid, eventId }) {
+  return functions().httpsCallable("eventRemoveUser")({
+    eventId,
+    uid,
   });
 }
 
@@ -174,6 +212,10 @@ const Event = {
   create,
   update,
   invite_users,
+  remove_invited,
+  add_validators,
+  remove_validator,
+  remove_user,
   delete: _delete,
 };
 

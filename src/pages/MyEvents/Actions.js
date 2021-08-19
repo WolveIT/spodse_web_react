@@ -44,6 +44,8 @@ function EventActions({
       AlertPopup({
         title: "Delete Event",
         message: "Are you sure you want to delete this event?",
+        okText: "delete",
+        okButtonProps: { danger: true },
         onOk: () =>
           Event.delete(event.id).then(() => {
             dispatch(deleteEventFromState(event.id));

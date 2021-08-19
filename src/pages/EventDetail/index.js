@@ -1,23 +1,30 @@
-import React, { useCallback, useEffect } from "react";
-import { connect } from "dva";
+import React, { useCallback, useEffect, useState } from "react";
+import { connect, useDispatch, useSelector } from "dva";
 import { useParams } from "react-router-dom";
 import EventActions from "../MyEvents/Actions";
 import PageSpinner from "../../components/Spinner/PageSpinner";
 import {
+  addValidators,
   fetchGoing,
   fetchInvited,
+  fetchValidators,
+  inviteUsers,
   listenEvent,
   unsubEvent,
 } from "../../models/event";
 import Center from "../../components/Center";
 import {
   Card,
+  Collapse,
   Descriptions,
   Divider,
   Empty,
+  Input,
   List,
+  Popover,
   Tabs,
   Tag,
+  Tooltip,
   Typography,
 } from "antd";
 import moment from "moment";
@@ -28,9 +35,17 @@ import OutOf from "../../components/OutOf";
 import TagsList from "../../components/TagsList";
 import ImagePicker from "../../components/ImagePicker";
 import LazyList from "../../components/LazyList";
-import { placeholderAvatar } from "../../utils";
+import { capitalize, placeholderAvatar } from "../../utils";
 import ServerImg from "../../components/ServerImg";
 import UserSearch from "./userSearch";
+import {
+  DeleteOutlined,
+  InfoCircleOutlined,
+  RightOutlined,
+} from "@ant-design/icons";
+import Event from "../../services/event";
+import AlertPopup from "../../components/AlertPopup";
+import CustomIcon from "../../components/Icon";
 
 function Schedule({ event }) {
   const startsAt = moment(event.startsAt.toDate());
@@ -51,6 +66,281 @@ function Label({ children, style }) {
   );
 }
 
+function InvitationMessageBox({ value, onChange }) {
+  return (
+    <Collapse
+      style={{ marginLeft: -16, marginRight: -16, marginBottom: -12 }}
+      expandIcon={({ isActive }) => (
+        <RightOutlined
+          style={{ fontSize: 9, color: Theme.get() }}
+          rotate={isActive ? 90 : 0}
+        />
+      )}
+      collapsible="header"
+      ghost
+    >
+      <Collapse.Panel
+        header={
+          <span
+            style={{
+              fontSize: 12,
+              position: "relative",
+              left: -6,
+              top: -1,
+              color: Theme.get(),
+            }}
+          >
+            Customize Invitation Message
+          </span>
+        }
+        key="1"
+      >
+        <div style={{ position: "relative" }}>
+          <Input.TextArea
+            value={value}
+            onChange={onChange}
+            placeholder="Type your invitation message here"
+            style={{ marginTop: -8, resize: "none" }}
+            autoSize={{ minRows: 4, maxRows: 4 }}
+          />
+          <div style={{ position: "absolute", top: -6, right: 6 }}>
+            <Tooltip
+              title={
+                <div>
+                  {`Use double curly braces`}{" "}
+                  <span style={{ color: "#00FFFF" }}> {`{{}}`} </span>{" "}
+                  {`to embed dynamic data in your message. You can also use basic HTML tags like`}{" "}
+                  <strong>{`<strong>,<em>,<a>`}</strong>{" "}
+                  {`etc. to customize markup of your message.`}
+                  <br />
+                  <br />
+                  Supported Parameters:
+                  <br />
+                  <span
+                    style={{ color: "#00FFFF" }}
+                  >{`{{inviteeDetails.displayName}}`}</span>{" "}
+                  - Will be replaced by name of each invitee
+                  <br />
+                  <br />
+                  <span
+                    style={{ color: "#00FFFF" }}
+                  >{`{{inviteeDetails.email}}`}</span>{" "}
+                  - Will be replaced by email of each invitee
+                  <br />
+                  <br />
+                  <span
+                    style={{ color: "#00FFFF" }}
+                  >{`{{inviteeDetails.profilePicture}}`}</span>{" "}
+                  - Will be replaced by profile picture's url of each invitee
+                  <br />
+                  <br />
+                </div>
+              }
+            >
+              <InfoCircleOutlined
+                style={{ fontSize: 15, color: Theme.get() }}
+              />
+            </Tooltip>
+          </div>
+        </div>
+      </Collapse.Panel>
+    </Collapse>
+  );
+}
+
+function InviteUserSearch() {
+  const dispatch = useDispatch();
+
+  const { loading, eventId, exclusions, inviterName, eventTitle } = useSelector(
+    ({ event, user }) => ({
+      loading: event.loading.inviteUsers,
+      eventId: event.current?.id,
+      exclusions: [
+        ...new Set([
+          ...event.invitedList.map((e) => e.inviteeDetails?.email),
+          ...event.goingList.map((e) => e.email),
+        ]),
+      ],
+      eventTitle: event.current?.title,
+      inviterName: user.current?.displayName || "",
+    })
+  );
+
+  const [msg, setMsg] = useState(
+    `Hi {{inviteeDetails.displayName}}!\nYou've been invited by ${inviterName} to join their event <strong>${eventTitle}</strong>. Click the button below to join the event.`
+  );
+
+  const onMessageChange = useCallback(({ target }) => {
+    setMsg(target.value);
+  }, []);
+
+  const onSubmit = useCallback(
+    (emails, successCallback) => {
+      dispatch(
+        inviteUsers(eventId, emails, msg, () => {
+          successCallback && successCallback();
+          dispatch(fetchInvited(eventId, true));
+        })
+      );
+    },
+    [msg]
+  );
+
+  return (
+    <>
+      <UserSearch
+        loading={loading}
+        exclusions={exclusions}
+        onSubmit={onSubmit}
+        submitText="Invite"
+        dataKey="email"
+      />
+      <InvitationMessageBox value={msg} onChange={onMessageChange} />
+    </>
+  );
+}
+
+function ValidatorsUserSearch() {
+  const dispatch = useDispatch();
+  const { loading, eventId, exclusions } = useSelector(({ event }) => ({
+    loading: event.loading.addValidators,
+    eventId: event.current?.id,
+    exclusions: event.validatorsList.map((e) => e.userDetails?.uid),
+  }));
+
+  const onSubmit = useCallback((uids, successCallback) => {
+    dispatch(
+      addValidators(eventId, uids, () => {
+        successCallback && successCallback();
+        dispatch(fetchValidators(eventId, true));
+      })
+    );
+  }, []);
+
+  return (
+    <UserSearch
+      maxLength={249}
+      loading={loading}
+      exclusions={exclusions}
+      onSubmit={onSubmit}
+      submitText="Add"
+      dataKey="uid"
+    />
+  );
+}
+
+function FieldValue({ field, value }) {
+  if (!value) return null;
+  return (
+    <p style={{ color: "#5d5d5d", fontSize: 12, display: "flex" }}>
+      <span style={{ display: "inline-block", fontWeight: "500", width: 90 }}>
+        {field}
+      </span>
+      <span>{value}</span>
+    </p>
+  );
+}
+
+function UserCard({
+  profilePicture,
+  displayName,
+  date,
+  status,
+  onDelete,
+  onSuccessDelete,
+  ticketInfo,
+}) {
+  const onClick = useCallback(() => {
+    AlertPopup({
+      title: "Delete User",
+      message: "Are you sure you want to delete this user?",
+      okText: "delete",
+      okButtonProps: { danger: true },
+      onOk: () => {
+        return Promise.resolve(onDelete?.method(...onDelete.args)).then(
+          onSuccessDelete
+        );
+      },
+    });
+  }, []);
+
+  const actions = [];
+  if (ticketInfo)
+    actions.push(
+      <Tooltip title="Ticket Info">
+        <Popover
+          trigger="click"
+          content={
+            <div>
+              <FieldValue field="Ticket No." value={ticketInfo.id} />
+              <FieldValue
+                field="Ticket Status"
+                value={capitalize(ticketInfo.status?.value || "N/A")}
+              />
+              <FieldValue
+                field="Used On"
+                value={
+                  ticketInfo.status?.value === "consumed" &&
+                  moment(ticketInfo.status.timestamp?.toDate()).format(
+                    "MMM Do YYYY, h:mm a"
+                  )
+                }
+              />
+              <FieldValue
+                field="Validated By"
+                value={ticketInfo.validatorDetails?.displayName}
+              />
+            </div>
+          }
+          title="Ticket Info"
+        >
+          <CustomIcon
+            style={{
+              fontSize: 15,
+              color: ticketInfo.status?.value === "consumed" && "#42ba96",
+            }}
+            type="icon-ticket"
+          />
+        </Popover>
+      </Tooltip>
+    );
+  if (onDelete?.method)
+    actions.push(
+      <Tooltip title="Delete">
+        <DeleteOutlined onClick={onClick} />
+      </Tooltip>
+    );
+
+  return (
+    <List.Item actions={actions}>
+      <List.Item.Meta
+        avatar={
+          <ServerImg
+            src={profilePicture}
+            style={{ borderRadius: "50%", width: 40, height: 40 }}
+            loader={{ shape: "circle", type: "skeleton" }}
+            fallback={placeholderAvatar}
+          />
+        }
+        title={displayName}
+        description={moment(date).format("D MMM YY - h:m a")}
+      />
+      {status && (
+        <span
+          style={{
+            fontWeight: 500,
+            marginRight: 24,
+            fontSize: 13,
+            color: status === "accepted" ? "#42ba96" : "#F29339",
+          }}
+        >
+          {status === "accepted" ? "Accepted" : "Pending"}
+        </span>
+      )}
+    </List.Item>
+  );
+}
+
 function EventDetail({
   event,
   listenEvent,
@@ -59,12 +349,14 @@ function EventDetail({
   goingLoading,
   invited,
   invitedLoading,
+  validators,
+  validatorsLoading,
   fetchGoing,
   fetchInvited,
+  fetchValidators,
+  tickets,
 }) {
   const { eventId } = useParams();
-
-  useEffect(() => {}, [invited]);
 
   const loadGoing = useCallback(
     (reset) => {
@@ -76,6 +368,13 @@ function EventDetail({
   const loadInvited = useCallback(
     (reset) => {
       fetchInvited(eventId, reset);
+    },
+    [eventId]
+  );
+
+  const loadValidators = useCallback(
+    (reset) => {
+      fetchValidators(eventId, reset);
     },
     [eventId]
   );
@@ -100,9 +399,12 @@ function EventDetail({
     );
 
   event.closesAt = moment(event.closesAt.toDate());
-  const regClosed = event.closesAt.isBefore(moment());
+  const now = moment();
+  const regClosed = event.closesAt.isBefore(now);
   const occupied = event.attendeesCount >= event.maxAttendees;
   const allowNewInvites = !(regClosed || occupied);
+  const isEnded = moment(event.endsAt?.toDate()).isBefore(now);
+  const hasTickets = ["internal", "external"].includes(event.ticketAnswer);
 
   return (
     <Card
@@ -221,44 +523,56 @@ function EventDetail({
         <Tabs
           defaultActiveKey="1"
           onChange={(key) => {
-            if (key === "2") loadInvited(true);
-            else loadGoing(true);
+            const loader = {
+              1: loadGoing,
+              2: loadInvited,
+              3: loadValidators,
+            };
+            loader[key](true);
           }}
         >
-          <Tabs.TabPane tab="Going" key="1">
+          <Tabs.TabPane tab={`Going (${event.attendeesCount})`} key="1">
             <LazyList
               listHeight={375}
               onEndReached={loadGoing}
               loading={goingLoading}
               dataSource={going}
               renderItem={(item) => (
-                <List.Item>
-                  <List.Item.Meta
-                    key={item.key}
-                    avatar={
-                      <ServerImg
-                        src={item.profilePicture}
-                        style={{ borderRadius: "50%", width: 40, height: 40 }}
-                        loader={{ shape: "circle", type: "skeleton" }}
-                        fallback={placeholderAvatar}
-                      />
-                    }
-                    title={item.displayName}
-                    description={moment(item.createdAt).format(
-                      "D MMM YY - h:m a"
-                    )}
-                  />
-                </List.Item>
+                <UserCard
+                  key={item.key}
+                  profilePicture={item.profilePicture}
+                  displayName={item.displayName}
+                  date={item.createdAt}
+                  onDelete={{
+                    method: Event.remove_user,
+                    args: [{ uid: item.id, eventId }],
+                  }}
+                  onSuccessDelete={() => loadGoing(true)}
+                  ticketInfo={(() => {
+                    const key = Object.keys(tickets).find(
+                      (e) => tickets[e]?.uid === item.id
+                    );
+                    return key ? { id: key, ...tickets[key] } : undefined;
+                  })()}
+                />
               )}
             />
           </Tabs.TabPane>
-          <Tabs.TabPane tab="Invited" key="2">
+          <Tabs.TabPane
+            tab={
+              `Invited` +
+              (typeof event.stats?.totalInvited === "number"
+                ? ` (${event.stats?.totalInvited})`
+                : "")
+            }
+            key="2"
+          >
             {allowNewInvites ? (
               <>
                 <div style={{ fontSize: 12, marginBottom: 6, fontWeight: 500 }}>
                   Invite users
                 </div>
-                <UserSearch />
+                <InviteUserSearch />
                 <Divider style={{ marginBottom: 8 }} />
               </>
             ) : null}
@@ -268,44 +582,71 @@ function EventDetail({
               loading={invitedLoading}
               dataSource={invited}
               renderItem={(item) => (
-                <List.Item>
-                  <List.Item.Meta
-                    key={item.key}
-                    avatar={
-                      <ServerImg
-                        src={item.inviteeDetails?.profilePicture}
-                        style={{ borderRadius: "50%", width: 40, height: 40 }}
-                        loader={{ shape: "circle", type: "skeleton" }}
-                        fallback={placeholderAvatar}
-                      />
+                <UserCard
+                  key={item.key}
+                  date={item.createdAt}
+                  status={item.status?.value}
+                  profilePicture={item.inviteeDetails?.profilePicture}
+                  displayName={
+                    item.inviteeDetails?.displayName ||
+                    item.inviteeDetails?.email
+                  }
+                  onDelete={
+                    item.status?.value === "pending" && {
+                      method: Event.remove_invited,
+                      args: [{ invitationId: item.id, eventId }],
                     }
-                    title={
-                      item.inviteeDetails?.displayName ||
-                      item.inviteeDetails?.email
-                    }
-                    description={moment(item.createdAt).format(
-                      "D MMM YY - h:m a"
-                    )}
-                  />
-                  <span
-                    style={{
-                      fontWeight: 500,
-                      marginRight: 24,
-                      fontSize: 13,
-                      color:
-                        item?.status?.value === "accepted"
-                          ? "#42ba96"
-                          : "#F29339",
-                    }}
-                  >
-                    {item?.status?.value === "accepted"
-                      ? "Accepted"
-                      : "Pending"}
-                  </span>
-                </List.Item>
+                  }
+                  onSuccessDelete={() => loadInvited(true)}
+                />
               )}
             />
           </Tabs.TabPane>
+          {hasTickets && (
+            <Tabs.TabPane
+              tab={
+                `Validators` +
+                (typeof event.stats?.totalValidators === "number"
+                  ? ` (${event.stats?.totalValidators})`
+                  : "")
+              }
+              key="3"
+            >
+              {isEnded ? null : (
+                <>
+                  <div
+                    style={{ fontSize: 12, marginBottom: 6, fontWeight: 500 }}
+                  >
+                    Add Ticket Validators
+                  </div>
+                  <ValidatorsUserSearch />
+                  <Divider style={{ marginBottom: 8 }} />
+                </>
+              )}
+              <LazyList
+                listHeight={375}
+                onEndReached={loadValidators}
+                loading={validatorsLoading}
+                dataSource={validators}
+                renderItem={(item) => (
+                  <UserCard
+                    key={item.key}
+                    profilePicture={item.userDetails?.profilePicture}
+                    displayName={item.userDetails?.displayName}
+                    date={item.createdAt}
+                    onDelete={
+                      item.userDetails?.uid !==
+                        (event.organizerId || event.organizer) && {
+                        method: Event.remove_validator,
+                        args: [{ uid: item.userDetails?.uid, eventId }],
+                      }
+                    }
+                    onSuccessDelete={() => loadValidators(true)}
+                  />
+                )}
+              />
+            </Tabs.TabPane>
+          )}
         </Tabs>
       </div>
     </Card>
@@ -317,13 +658,17 @@ export default connect(
     event: event.current,
     going: event.goingList,
     invited: event.invitedList,
+    validators: event.validatorsList,
     goingLoading: event.loading.goingList,
     invitedLoading: event.loading.invitedList,
+    validatorsLoading: event.loading.validatorsList,
+    tickets: event.tickets?.tickets || {},
   }),
   {
     listenEvent,
     unsubEvent,
     fetchGoing,
     fetchInvited,
+    fetchValidators,
   }
 )(EventDetail);

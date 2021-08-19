@@ -14,6 +14,7 @@ export default function LazyList({
   skeletonEntriesCount = 4,
   endReachedPercent = 80,
   throttling = 300,
+  bottomPadding = 150,
   containerStyle,
   ...props
 }) {
@@ -47,19 +48,25 @@ export default function LazyList({
             ? dataSource.concat(
                 ...Array(skeletonEntriesCount).fill({ loading: true })
               )
-            : dataSource
+            : [...dataSource, false]
         }
-        renderItem={(item, index) => (
-          <Skeleton
-            avatar
-            title={false}
-            active
-            {...skeletonProps}
-            loading={item?.loading}
-          >
-            {typeof renderItem === "function" ? renderItem(item, index) : null}
-          </Skeleton>
-        )}
+        renderItem={(item, index) =>
+          index === dataSource.length && !loading ? (
+            <div style={{ height: bottomPadding }} />
+          ) : (
+            <Skeleton
+              avatar
+              title={false}
+              active
+              {...skeletonProps}
+              loading={item?.loading}
+            >
+              {typeof renderItem === "function"
+                ? renderItem(item, index)
+                : null}
+            </Skeleton>
+          )
+        }
       />
     </PerfectScrollBar>
   );

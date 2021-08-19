@@ -10,14 +10,12 @@ import debounce from "lodash.debounce";
 import ServerImg from "../../components/ServerImg";
 import { placeholderAvatar } from "../../utils";
 import Algolia from "../../services/algolia";
-import { isValidEmail } from "../../utils/validations";
+import { isValidEmail, isValidUid } from "../../utils/validations";
 import { UploadOutlined, UsergroupAddOutlined } from "@ant-design/icons";
 import { openFile } from "../../components/PopoverWidth";
 import Papa from "papaparse";
 import { globalErrorHandler } from "../../utils/errorHandler";
 import styles from "./index.module.scss";
-import { connect } from "dva";
-import { fetchInvited, inviteUsers } from "../../models/event";
 
 function DebounceSelect({
   fetchOptions,
@@ -60,36 +58,37 @@ function DebounceSelect({
   );
 }
 
-function tagRender(props) {
-  const { value, closable, onClose } = props;
-  const onPreventMouseDown = (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-  };
-  return (
-    <Tag
-      onMouseDown={onPreventMouseDown}
-      closable={closable}
-      onClose={onClose}
-      style={{ marginRight: 4 }}
-    >
-      {value}
-    </Tag>
-  );
-}
-
 const UserSearch = ({
   style,
   loading,
-  inviteUsers,
-  fetchInvited,
-  eventId,
+  onSubmit,
+  submitText,
   exclusions,
+  maxLength = 499,
+  dataKey = "email", //email or uid
 }) => {
   const [value, setValue] = useState([]);
 
+  function tagRender(props) {
+    const { value, closable, onClose } = props;
+    const onPreventMouseDown = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    return (
+      <Tag
+        onMouseDown={onPreventMouseDown}
+        closable={closable}
+        onClose={onClose}
+        style={{ marginRight: 4 }}
+      >
+        {dataKey === "email" ? value : JSON.parse(value).email}
+      </Tag>
+    );
+  }
+
   useEffect(() => {
-    if (value > 500) setValue(value.slice(0, 500));
+    if (value > maxLength) setValue(value.slice(0, maxLength));
     const unique = [...new Set(value)];
     if (unique.length < value.length) setValue(unique);
   }, [value]);
@@ -105,17 +104,23 @@ const UserSearch = ({
           const users = res.hits.map((hit) => ({
             ...hit,
             id: hit.objectID,
-            value: hit.email,
+            value: dataKey === "email" ? hit.email : hit.objectID,
           }));
-          if (isValidEmail(val) && !users.find((e) => e.email === val))
+
+          if (
+            dataKey === "email" &&
+            isValidEmail(val) &&
+            !users.find((e) => e.email === val)
+          )
             users.push({
+              id: val,
               value: val,
               email: val,
               profilePicture: null,
               displayName: "Not a member yet",
             });
 
-          return users.filter((e) => !exclusions.includes(e.email));
+          return users.filter((e) => !exclusions.includes(e.value));
         })
         .catch(globalErrorHandler);
     },
@@ -133,7 +138,11 @@ const UserSearch = ({
               ...value,
               ...parsed.data
                 .map((row) => row[0])
-                .filter((str) => str.length && isValidEmail(str)),
+                .filter(
+                  (str) =>
+                    str.length &&
+                    (dataKey === "email" ? isValidEmail(str) : isValidUid(str))
+                ),
             ]),
           error: globalErrorHandler,
         }),
@@ -144,31 +153,40 @@ const UserSearch = ({
     setValue([]);
   }, []);
 
-  const onInvite = useCallback(() => {
-    inviteUsers(eventId, value, () => {
-      setValue([]);
-      fetchInvited(eventId, true);
-    });
+  const onButtonClick = useCallback(() => {
+    onSubmit(
+      dataKey === "email" ? value : value.map((item) => JSON.parse(item).id),
+      () => setValue([])
+    );
   }, [value]);
 
   return (
     <div style={{ display: "flex", ...(style || {}) }}>
-      <Tooltip title="Upload Emails File">
-        <Button
-          style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
-          onClick={onOpenFile}
-          icon={<UploadOutlined />}
-        />
-      </Tooltip>
+      {dataKey === "email" && (
+        <Tooltip title={`Upload Emails File`}>
+          <Button
+            style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+            onClick={onOpenFile}
+            icon={<UploadOutlined />}
+          />
+        </Tooltip>
+      )}
       <DebounceSelect
         mode="multiple"
         placeholder="Enter name or email to invite"
         fetchOptions={fetchUserList}
         tagRender={tagRender}
-        disabled={value.length >= 500}
+        disabled={value.length >= maxLength}
         renderOptions={(user) => {
           return (
-            <Select.Option value={user.value}>
+            <Select.Option
+              key={user.id}
+              value={
+                dataKey === "email"
+                  ? user.value
+                  : JSON.stringify({ email: user.email, id: user.id })
+              }
+            >
               <div style={{ display: "flex", alignItems: "center" }}>
                 <ServerImg
                   src={user.profilePicture}
@@ -203,24 +221,12 @@ const UserSearch = ({
         loading={loading}
         style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
         icon={<UsergroupAddOutlined />}
-        onClick={onInvite}
+        onClick={onButtonClick}
       >
-        Invite
+        {submitText}
       </Button>
     </div>
   );
 };
 
-export default connect(
-  ({ event }) => ({
-    loading: event.loading.inviteUsers,
-    eventId: event.current?.id,
-    exclusions: [
-      ...new Set([
-        ...event.invitedList.map((e) => e.inviteeDetails?.email),
-        ...event.goingList.map((e) => e.email),
-      ]),
-    ],
-  }),
-  { inviteUsers, fetchInvited }
-)(UserSearch);
+export default UserSearch;

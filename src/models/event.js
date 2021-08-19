@@ -59,10 +59,18 @@ export const setFormData = (data) => ({
   formData: data,
 });
 
-export const inviteUsers = (eventId, emails, onComplete) => ({
+export const inviteUsers = (eventId, emails, message, onComplete) => ({
   type: `${namespace}/inviteUsers`,
   eventId,
   emails,
+  message,
+  onComplete,
+});
+
+export const addValidators = (eventId, uids, onComplete) => ({
+  type: `${namespace}/addValidators`,
+  eventId,
+  uids,
   onComplete,
 });
 
@@ -98,6 +106,22 @@ export const clearGoing = () => {
   };
 };
 
+let validatorsNoMore = false;
+export const fetchValidators = (eventId, reset = false) => ({
+  type: `${namespace}/fetchValidators`,
+  reset,
+  eventId,
+});
+
+export const clearValidators = () => {
+  validatorsNoMore = false;
+  return {
+    type: `${namespace}/setState`,
+    validatorsList: [],
+    validatorsListInstance: null,
+  };
+};
+
 let noMore = false;
 const perBatch = 15;
 export const fetchEvents = (reset = false) => ({
@@ -118,21 +142,26 @@ export default {
   namespace,
   state: {
     current: undefined,
+    tickets: undefined,
     createEventProgress: undefined,
     list: [],
     goingList: [],
     invitedList: [],
+    validatorsList: [],
     listInstance: null,
     goingListInstance: null,
     invitedListInstance: null,
+    validatorsListInstance: null,
     formData: {},
     loading: {
       fetchCurrent: false,
       createEvent: false,
       goingList: false,
       invitedList: false,
+      validatorsList: false,
       list: false,
       inviteUsers: false,
+      addValidators: false,
       delete: false,
     },
   },
@@ -151,7 +180,7 @@ export default {
     *listenCurrent({ eventId }, { take, put }) {
       yield put(unsubEvent());
 
-      const unsub = Firestore.listen(
+      const unsub1 = Firestore.listen(
         refs.events.doc(eventId),
         (event) => {
           dispatch(saveEvent(event));
@@ -162,16 +191,37 @@ export default {
         }
       );
 
+      const unsub2 = Firestore.listen(
+        refs.eventTickets(eventId),
+        (tickets) => {
+          dispatch({
+            type: `${namespace}/setState`,
+            tickets,
+          });
+        },
+        (error) => {
+          localErrorHandler({ namespace, error });
+          dispatch({
+            type: `${namespace}/setState`,
+            tickets: null,
+          });
+        }
+      );
+
       yield take(`${namespace}/unsubCurrent`);
-      unsub && unsub();
+      unsub1 && unsub1();
+      unsub2 && unsub2();
     },
 
-    *fetchCurrent({ eventId }, { call, put }) {
+    *fetchCurrent({ eventId }, { all, call, put }) {
       try {
         yield put(startLoading("fetchCurrent"));
 
-        const event = yield call(Firestore.get, refs.events.doc(eventId));
-        yield put({ type: "setState", current: event });
+        const [event, tickets] = yield all[
+          (call(Firestore.get, refs.events.doc(eventId)),
+          call(Firestore.get, refs.eventTickets(eventId)))
+        ];
+        yield put({ type: "setState", current: event, tickets });
 
         yield put(stopLoading("fetchCurrent"));
       } catch (error) {
@@ -262,6 +312,49 @@ export default {
       }
     },
 
+    *fetchValidators({ eventId, reset }, { put, select, call }) {
+      try {
+        if (reset === true) yield put(clearValidators());
+        let [listInstance, loading] = yield select((state) => [
+          state[namespace].validatorsListInstance,
+          state[namespace].loading.validatorsList,
+        ]);
+        if (reset !== true && (validatorsNoMore || loading)) return;
+
+        yield put(startLoading("validatorsList"));
+
+        if (!listInstance)
+          listInstance = new PaginatedList({
+            perBatch,
+            basicQuery: refs.eventsAccControl
+              .where("eventDetails.id", "==", eventId)
+              .where("role", "==", "ticket-validator")
+              .orderBy("createdAt", "desc"),
+          });
+
+        yield put({
+          type: "setState",
+          validatorsListInstance: listInstance,
+        });
+
+        const docs = yield call(listInstance.get_next);
+        if (docs.length < perBatch) validatorsNoMore = true;
+
+        yield put({
+          type: "appendList",
+          name: "validatorsList",
+          list: docs.map((item) => ({
+            key: item.id,
+            ...item,
+            createdAt: item?.createdAt?.toDate(),
+          })),
+        });
+        yield put(stopLoading("validatorsList"));
+      } catch (error) {
+        localErrorHandler({ namespace, error, stopLoading: "validatorsList" });
+      }
+    },
+
     *fetchList({ reset }, { select, put, call }) {
       try {
         if (reset === true) yield put(clearEventsList());
@@ -278,7 +371,7 @@ export default {
             perBatch,
             basicQuery: refs.events
               .where("organizerId", "==", currUser().uid)
-              .orderBy("startsAt", "desc"),
+              .orderBy("createdAt", "desc"),
           });
 
         yield put({
@@ -304,17 +397,30 @@ export default {
       }
     },
 
-    *inviteUsers({ eventId, emails, onComplete }, { put, call, select }) {
+    *inviteUsers({ eventId, emails, message, onComplete }, { put, call }) {
       try {
         emails = emails.filter(isValidEmail);
         if (!emails.length) throw new Error("No emails provided!");
 
         yield put(startLoading("inviteUsers"));
-        yield call(Event.invite_users, { eventId, emails });
+        yield call(Event.invite_users, { eventId, emails, message });
         yield put(stopLoading("inviteUsers"));
         if (typeof onComplete === "function") onComplete();
       } catch (error) {
         localErrorHandler({ namespace, error, stopLoading: "inviteUsers" });
+      }
+    },
+
+    *addValidators({ eventId, uids, onComplete }, { put, call }) {
+      try {
+        if (!uids.length) throw new Error("No users to add!");
+
+        yield put(startLoading("addValidators"));
+        yield call(Event.add_validators, { eventId, uids });
+        yield put(stopLoading("addValidators"));
+        if (typeof onComplete === "function") onComplete();
+      } catch (error) {
+        localErrorHandler({ namespace, error, stopLoading: "addValidators" });
       }
     },
 

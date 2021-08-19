@@ -21,7 +21,7 @@ import FilePicker from "../../components/FilePicker";
 import Theme from "../../utils/theme";
 import Event from "../../services/event";
 import { globalErrorHandler } from "../../utils/errorHandler";
-import { useLocation, useParams } from "react-router-dom";
+import { useHistory, useLocation, useParams } from "react-router-dom";
 import { connect } from "dva";
 import { fetchEvent, setFormData } from "../../models/event";
 import PageSpinner from "../../components/Spinner/PageSpinner";
@@ -85,10 +85,11 @@ export const disabledTime = (d, minDate, maxDate) => {
   };
 };
 
-function NewEvent({ event, fetchEvent, fetchLoading, setFormData }) {
+function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
   const eventId = useParams().eventId;
   const pathname = useLocation().pathname;
   const editMode = pathname.slice(pathname.lastIndexOf("/") + 1) === "edit";
+  const history = useHistory();
 
   useEffect(() => {
     if (editMode && event?.id !== eventId) fetchEvent(eventId);
@@ -112,6 +113,11 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData }) {
     }
   }, [event]);
 
+  useEffect(() => {
+    if (endsAt && !form.getFieldValue("closesAt"))
+      form.setFields([{ name: "closesAt", value: endsAt }]);
+  }, [endsAt]);
+
   const onSubmit = useCallback(
     (data) => {
       data.startsAt = data.schedule[0].toDate();
@@ -121,8 +127,7 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData }) {
       if (editMode) data.eventId = eventId;
       setProgress(0);
       Event[editMode ? "update" : "create"](data, setProgress)
-        .then(() => {
-          console.log(data);
+        .then((eventId) => {
           message.success(
             `Event ${editMode ? "updated" : "created"} Successfully!`
           );
@@ -131,6 +136,7 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData }) {
           } else {
             form.resetFields();
             setTicketAnswer(false);
+            history.push(`/events/${eventId}`);
           }
         })
         .catch(globalErrorHandler)
@@ -234,8 +240,13 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData }) {
         <Form.Item
           name="maxAttendees"
           label="Attendees Limit"
+          dependencies={["ticketAnswer"]}
           rules={[
-            { required: true },
+            ({ getFieldValue }) => ({
+              required: ["internal", "external"].includes(
+                getFieldValue("ticketAnswer")
+              ),
+            }),
             {
               min: event?.attendeesCount || 1,
               type: "number",
@@ -350,6 +361,7 @@ export default connect(
   ({ event }) => ({
     event: event.current,
     fetchLoading: event.loading.fetchCurrent,
+    endsAt: event.formData.schedule?.[1],
   }),
   { fetchEvent, setFormData }
 )(NewEvent);

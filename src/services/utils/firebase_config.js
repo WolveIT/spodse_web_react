@@ -38,6 +38,8 @@ const eventTickets = (eventId) =>
 
 const eventInvites = (eventId) => events.doc(eventId).collection("invites");
 
+const eventsAccControl = db().collection("eventsAccessControl");
+
 const tickets = db().collection("tickets");
 
 const config = db().collection("config");
@@ -54,6 +56,7 @@ export const refs = {
   events,
   eventTickets,
   eventInvites,
+  eventsAccControl,
   tickets,
   config,
   test,

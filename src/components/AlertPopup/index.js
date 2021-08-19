@@ -24,9 +24,10 @@ export default function AlertPopup({
   onOk,
   onCancel,
   cancellable = true,
+  modalType = "confirm",
   ...ModalProps
 }) {
-  Modal.confirm({
+  Modal[modalType]({
     title,
     content: message,
     okText,

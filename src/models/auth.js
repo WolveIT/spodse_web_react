@@ -7,6 +7,7 @@ import Business from "../services/business";
 import Storage from "../services/storage";
 import { refs } from "../services/utils/firebase_config";
 import { globalState } from "../utils";
+import { fetchUser } from "./user";
 
 const AuthServices = {
   mock: MockAuth,
@@ -151,6 +152,7 @@ export default {
           if (!globalState()[namespace].holdSetAuthUser) {
             console.log("Logged in");
             dispatch({ type: "setUser", user });
+            dispatch(fetchUser(user.uid));
           }
         } else {
           //if logged out
