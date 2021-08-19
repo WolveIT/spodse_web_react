@@ -358,7 +358,7 @@ function EventDetail({
   tickets,
 }) {
   const { eventId } = useParams();
-  const peopleTab = useQuery().get("peopleTab") || 1;
+  const peopleTab = useQuery().get("peopleTab") || "1";
   const history = useHistory();
 
   const loadGoing = useCallback(
