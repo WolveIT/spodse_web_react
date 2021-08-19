@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { connect, useDispatch, useSelector } from "dva";
-import { useParams } from "react-router-dom";
+import { useHistory, useParams } from "react-router-dom";
+import { useQuery } from "../../hooks/useQuery";
 import EventActions from "../MyEvents/Actions";
 import PageSpinner from "../../components/Spinner/PageSpinner";
 import {
@@ -282,7 +283,7 @@ function UserCard({
                 value={
                   ticketInfo.status?.value === "consumed" &&
                   moment(ticketInfo.status.timestamp?.toDate()).format(
-                    "MMM Do YYYY, h:mm a"
+                    "D MMM YY - h:m a"
                   )
                 }
               />
@@ -357,6 +358,8 @@ function EventDetail({
   tickets,
 }) {
   const { eventId } = useParams();
+  const peopleTab = useQuery().get("peopleTab") || 1;
+  const history = useHistory();
 
   const loadGoing = useCallback(
     (reset) => {
@@ -379,14 +382,20 @@ function EventDetail({
     [eventId]
   );
 
+  const loaders = {
+    1: loadGoing,
+    2: loadInvited,
+    3: loadValidators,
+  };
+
   //add listener to the current event
   useEffect(() => {
     listenEvent(eventId);
-    loadGoing(true);
+    loaders[peopleTab] && loaders[peopleTab](true);
     return () => {
       unsubEvent();
     };
-  }, []);
+  }, [peopleTab]);
 
   if (event === undefined)
     return <PageSpinner spinnerProps={{ size: "default" }} fixed={false} />;
@@ -521,14 +530,11 @@ function EventDetail({
           People
         </Label>
         <Tabs
-          defaultActiveKey="1"
+          activeKey={peopleTab}
           onChange={(key) => {
-            const loader = {
-              1: loadGoing,
-              2: loadInvited,
-              3: loadValidators,
-            };
-            loader[key](true);
+            history.push({
+              search: "?" + new URLSearchParams({ peopleTab: key }),
+            });
           }}
         >
           <Tabs.TabPane tab={`Going (${event.attendeesCount})`} key="1">
@@ -647,6 +653,28 @@ function EventDetail({
               />
             </Tabs.TabPane>
           )}
+          <Tabs.TabPane
+            tab={
+              `Likes` +
+              (event.likes ? ` (${Object.keys(event.likes).length})` : "")
+            }
+            key="4"
+          >
+            <LazyList
+              listHeight={375}
+              dataSource={Object.entries(event.likes || {})
+                .map(([key, val]) => ({ key, id: key, ...(val || {}) }))
+                .sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds)}
+              renderItem={(item) => (
+                <UserCard
+                  key={item.key}
+                  profilePicture={item.profilePicture}
+                  displayName={item.displayName}
+                  date={item.timestamp?.toDate()}
+                />
+              )}
+            />
+          </Tabs.TabPane>
         </Tabs>
       </div>
     </Card>
