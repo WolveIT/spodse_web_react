@@ -5,18 +5,14 @@ import PageSpinner from "../Spinner/PageSpinner";
 
 const RouteCustomWrapper = connect(({ auth }) => ({
   isLoggedIn: auth.user,
-  customClaims: auth.customClaims,
-}))(({ isLoggedIn, customClaims, children }) => {
+  isBusiness: auth.isBusiness,
+}))(({ isLoggedIn, isBusiness, children }) => {
   const { pathname } = useLocation();
 
-  if (isLoggedIn === undefined || (isLoggedIn && customClaims === undefined))
+  if (isLoggedIn === undefined || (isLoggedIn && isBusiness === undefined))
     return <PageSpinner text="Loading" />;
 
-  if (
-    isLoggedIn &&
-    !customClaims?.business &&
-    !pathname.startsWith("/no-account")
-  ) {
+  if (isLoggedIn && !isBusiness && !pathname.startsWith("/no-account")) {
     return (
       <Redirect
         to={{
@@ -24,7 +20,12 @@ const RouteCustomWrapper = connect(({ auth }) => ({
         }}
       />
     );
-  } else if (pathname.startsWith("/no-account"))
+  }
+
+  if (
+    ((isLoggedIn && isBusiness) || !isLoggedIn) &&
+    pathname.startsWith("/no-account")
+  ) {
     return (
       <Redirect
         to={{
@@ -32,6 +33,7 @@ const RouteCustomWrapper = connect(({ auth }) => ({
         }}
       />
     );
+  }
 
   return children;
 });

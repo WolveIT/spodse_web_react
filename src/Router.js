@@ -95,7 +95,6 @@ const AuthWrapper = connect(({ auth }) => ({
   isLoggedIn: auth.user,
 }))(({ isLoggedIn, type, children }) => {
   const location = useLocation();
-
   switch (type) {
     case "only-authenticated":
       if (isLoggedIn === undefined) return <PageSpinner text="Loading" />;
