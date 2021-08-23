@@ -27,7 +27,7 @@ import { fetchEvent, setFormData } from "../../models/event";
 import PageSpinner from "../../components/Spinner/PageSpinner";
 import EventPreview from "../../components/EventPreview";
 
-const genres = ["food and drink", "festival", "event"];
+const genres = ["Food & Drink", "Festival", "Event", "Sports"];
 
 export const disabledDate = (d, minDate, maxDate) => {
   if (d == null) {
@@ -182,17 +182,9 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
             showSearch
             style={{ width: 200, textTransform: "capitalize" }}
             placeholder="Select a genre"
-            optionFilterProp="value"
-            filterOption={(input, option) =>
-              option.value.toLowerCase().indexOf(input.toLowerCase()) >= 0
-            }
           >
             {genres.map((genre) => (
-              <Select.Option
-                style={{ textTransform: "capitalize" }}
-                key={genre}
-                value={genre}
-              >
+              <Select.Option key={genre} value={genre}>
                 {genre}
               </Select.Option>
             ))}

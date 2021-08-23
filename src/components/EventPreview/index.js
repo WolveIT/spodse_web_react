@@ -8,12 +8,13 @@ import { connect } from "dva";
 
 export function getGenreColor(genre) {
   const selector = {
-    "food and drink": "#fbc02d",
-    festival: "#e91e63",
-    event: "#9c27b0",
+    "Food & Drink": "#fbc02d",
+    Festival: "#e91e63",
+    Event: "#9c27b0",
+    Sports: "#1565C0",
   };
 
-  return selector[genre] || "#1565c0";
+  return selector[genre] || "#1565c055";
 }
 
 function EventPreview({ data, left, right = "32px", top, bottom = "32px" }) {

@@ -135,7 +135,10 @@ export default {
         if (prev) return;
 
         const customClaims = yield call(Auth.get_claims, true);
-        yield put({ type: "setState", isBusiness: customClaims?.business });
+        yield put({
+          type: "setState",
+          isBusiness: customClaims?.business || false,
+        });
       } catch (error) {
         localErrorHandler({ namespace, error });
       }

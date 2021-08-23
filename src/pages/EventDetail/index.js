@@ -305,6 +305,20 @@ function UserCard({
         </Popover>
       </Tooltip>
     );
+  if (status)
+    actions.push(
+      <span
+        style={{
+          display: "inline-block",
+          fontWeight: 500,
+          fontSize: 13,
+          color: status === "accepted" ? "#42ba96" : "#F29339",
+          marginRight: status === "accepted" && 24,
+        }}
+      >
+        {status === "accepted" ? "Accepted" : "Pending"}
+      </span>
+    );
   if (onDelete?.method)
     actions.push(
       <Tooltip title="Delete">
@@ -326,7 +340,7 @@ function UserCard({
         title={displayName}
         description={moment(date).format("D MMM YY - h:m a")}
       />
-      {status && (
+      {false && status && (
         <span
           style={{
             fontWeight: 500,
@@ -669,7 +683,7 @@ function EventDetail({
                 <UserCard
                   key={item.key}
                   profilePicture={item.profilePicture}
-                  displayName={item.displayName}
+                  displayName={item.displayName || "N/A"}
                   date={item.timestamp?.toDate()}
                 />
               )}
