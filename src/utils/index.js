@@ -1,5 +1,7 @@
 import { app } from "../App";
 import avatar from "../assets/images/avatar_placeholder.png";
+import moment from "moment";
+import { db } from "../services/utils/firebase_config";
 
 export function getRoutePath(basePath, currPath) {
   if (currPath.startsWith("/")) return currPath;
@@ -45,4 +47,20 @@ export function historyBackWFallback(fallbackUrl, delay = 500) {
       window.location.href = fallbackUrl;
     }
   }, delay);
+}
+
+export function transformDates(obj, transformer = moment) {
+  Object.entries(obj).forEach(([key, val]) => {
+    if (val instanceof Date) obj[key] = transformer(val);
+    else if (typeof val?.toDate === "function")
+      obj[key] = transformer(val.toDate());
+  });
+}
+
+export function toFirestoreTime(val) {
+  if (val instanceof db.Timestamp) return val;
+  else if (Number.isInteger(val)) val = new Date(val);
+  else if (moment.isMoment(val)) val = val.toDate();
+
+  return db.Timestamp.fromDate(val);
 }

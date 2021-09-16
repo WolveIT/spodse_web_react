@@ -1,10 +1,9 @@
 import { message } from "antd";
 import Event from "../services/event";
 import Firestore from "../services/firestore";
-import { currUser, refs } from "../services/utils/firebase_config";
+import { currUser, db, refs } from "../services/utils/firebase_config";
 import { PaginatedList } from "../services/utils/paginated_list";
-import { delay } from "../services/utils/utils";
-import { dispatch } from "../utils";
+import { dispatch, toFirestoreTime } from "../utils";
 import { localErrorHandler } from "../utils/errorHandler";
 import { isValidEmail } from "../utils/validations";
 
@@ -32,6 +31,12 @@ export const saveEvent = (currentEvent) => ({
 export const fetchEvent = (eventId) => ({
   type: `${namespace}/fetchCurrent`,
   eventId,
+});
+
+export const fetchLatestEvent = ({ queryCursor, offset }) => ({
+  type: `${namespace}/fetchLatest`,
+  queryCursor,
+  offset,
 });
 
 export const listenEvent = (eventId) => ({
@@ -142,6 +147,7 @@ export default {
   namespace,
   state: {
     current: undefined,
+    latest: undefined,
     tickets: undefined,
     createEventProgress: undefined,
     list: [],
@@ -155,6 +161,7 @@ export default {
     formData: {},
     loading: {
       fetchCurrent: false,
+      fetchLatest: false,
       createEvent: false,
       goingList: false,
       invitedList: false,
@@ -233,6 +240,35 @@ export default {
       }
     },
 
+    *fetchLatest({ queryCursor, offset }, { put, call }) {
+      try {
+        yield put(startLoading("fetchLatest"));
+
+        let query = refs.events
+          .where("organizerId", "==", currUser().uid)
+          .orderBy("endsAt");
+        if (offset && queryCursor && query[queryCursor])
+          query = query[queryCursor](toFirestoreTime(offset));
+        else query = query.startAfter(db.Timestamp.now());
+        query = query.limit(1);
+
+        let event = yield call(Firestore.get_list, query);
+        event = event.docs[0];
+        if (event) {
+          const tickets = yield call(
+            Firestore.get,
+            refs.eventTickets(event.id)
+          );
+          yield put({ type: "setState", tickets });
+        }
+        yield put({ type: "setState", latest: event || null });
+
+        yield put(stopLoading("fetchLatest"));
+      } catch (error) {
+        localErrorHandler({ namespace, error, stopLoading: "fetchLatest" });
+      }
+    },
+
     *fetchGoing({ eventId, reset }, { put, select, call }) {
       try {
         if (reset === true) yield put(clearGoing());
@@ -243,6 +279,8 @@ export default {
         if (reset !== true && (goingNoMore || loading)) return;
 
         yield put(startLoading("goingList"));
+
+        console.log(yield select((state) => state[namespace].goingList));
 
         if (!listInstance)
           listInstance = new PaginatedList({
@@ -329,6 +367,7 @@ export default {
             basicQuery: refs.eventsAccControl
               .where("eventDetails.id", "==", eventId)
               .where("role", "==", "ticket-validator")
+              .orderBy("stats.totalTicketsValidated", "desc")
               .orderBy("createdAt", "desc"),
           });
 

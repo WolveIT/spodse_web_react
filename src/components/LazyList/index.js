@@ -1,4 +1,4 @@
-import { List, Skeleton } from "antd";
+import { Empty, List, Skeleton } from "antd";
 import throttle from "lodash.throttle";
 import React, { useCallback } from "react";
 import PerfectScrollBar from "react-perfect-scrollbar";
@@ -36,38 +36,42 @@ export default function LazyList({
 
   return (
     <PerfectScrollBar style={containerStyle} onScrollDown={onScrollDown}>
-      <List
-        itemLayout="horizontal"
-        {...props}
-        style={{
-          height: listHeight,
-          ...(listStyle || {}),
-        }}
-        dataSource={
-          loading
-            ? dataSource.concat(
-                ...Array(skeletonEntriesCount).fill({ loading: true })
-              )
-            : [...dataSource, false]
-        }
-        renderItem={(item, index) =>
-          index === dataSource.length && !loading ? (
-            <div style={{ height: bottomPadding }} />
-          ) : (
-            <Skeleton
-              avatar
-              title={false}
-              active
-              {...skeletonProps}
-              loading={item?.loading}
-            >
-              {typeof renderItem === "function"
-                ? renderItem(item, index)
-                : null}
-            </Skeleton>
-          )
-        }
-      />
+      {!loading && !dataSource.length ? (
+        <Empty />
+      ) : (
+        <List
+          itemLayout="horizontal"
+          {...props}
+          style={{
+            height: listHeight,
+            ...(listStyle || {}),
+          }}
+          dataSource={
+            loading
+              ? dataSource.concat(
+                  ...Array(skeletonEntriesCount).fill({ loading: true })
+                )
+              : [...dataSource, false]
+          }
+          renderItem={(item, index) =>
+            index === dataSource.length && !loading ? (
+              <div style={{ height: bottomPadding }} />
+            ) : (
+              <Skeleton
+                avatar
+                title={false}
+                active
+                {...skeletonProps}
+                loading={item?.loading}
+              >
+                {typeof renderItem === "function"
+                  ? renderItem(item, index)
+                  : null}
+              </Skeleton>
+            )
+          }
+        />
+      )}
     </PerfectScrollBar>
   );
 }

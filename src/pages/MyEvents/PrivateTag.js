@@ -1,22 +1,20 @@
+import { Tag } from "antd";
 import React from "react";
 
 export default function PrivateTag({ isPrivate, style }) {
   return (
-    <span
+    <Tag
+      color={isPrivate ? "#BD2C6A" : "#0072BB"}
       style={{
-        backgroundColor: isPrivate ? "#BD2C6A" : "#0072BB",
-        color: "#fff",
-        fontWeight: 600,
-        display: "flex",
+        height: 26,
+        width: 60,
         justifyContent: "center",
         alignItems: "center",
-        width: 80,
-        height: 30,
-        borderRadius: 999,
+        display: "flex",
         ...(style || {}),
       }}
     >
       {isPrivate ? "Private" : "Public"}
-    </span>
+    </Tag>
   );
 }

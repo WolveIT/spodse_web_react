@@ -9,6 +9,7 @@ import {
   Progress,
   Select,
   Switch,
+  Tooltip,
 } from "antd";
 import React, { useCallback, useEffect, useState } from "react";
 import { historyBackWFallback, range } from "../../utils";
@@ -26,6 +27,12 @@ import { connect } from "dva";
 import { fetchEvent, setFormData } from "../../models/event";
 import PageSpinner from "../../components/Spinner/PageSpinner";
 import EventPreview from "../../components/EventPreview";
+import {
+  InfoCircleOutlined,
+  MinusCircleOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
+import Hover from "../../components/Hover";
 
 const genres = ["Food & Drink", "Festival", "Event", "Sports"];
 
@@ -125,6 +132,9 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
       data.closesAt = data.closesAt.toDate();
       if (data.isPrivate === undefined) data.isPrivate = false;
       if (editMode) data.eventId = eventId;
+      data.perks = data.perks
+        .filter((item) => item.title?.length)
+        .reduce((acc, curr) => ({ ...acc, [curr.title]: curr.qty || 1 }), {});
       setProgress(0);
       Event[editMode ? "update" : "create"](data, setProgress)
         .then((eventId) => {
@@ -310,6 +320,80 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
               multiple={false}
             />
           </Form.Item>
+        )}
+        {ticketAnswer && (
+          <Form.List name="perks">
+            {(fields, { add, remove }) => (
+              <>
+                {fields.map(({ field, name, fieldKey, ...rest }) => (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      width: "65%",
+                      marginBottom: 12,
+                    }}
+                  >
+                    <Form.Item
+                      {...rest}
+                      name={[name, "title"]}
+                      fieldKey={[fieldKey, "title"]}
+                      noStyle
+                    >
+                      <Input placeholder="Enter Perk Title" />
+                    </Form.Item>
+                    <Form.Item
+                      {...rest}
+                      name={[name, "qty"]}
+                      fieldKey={[fieldKey, "qty"]}
+                      noStyle
+                    >
+                      <InputNumber
+                        style={{ width: 160 }}
+                        placeholder="Max/Person"
+                        min={1}
+                      />
+                    </Form.Item>
+                    <Hover hoverStyle={{ color: "#333" }}>
+                      <MinusCircleOutlined
+                        style={{
+                          marginLeft: 10,
+                          fontSize: 20,
+                          color: "#3337",
+                          transition: "color 0.4s",
+                        }}
+                        onClick={() => remove(name)}
+                      />
+                    </Hover>
+                  </div>
+                ))}
+                <Form.Item>
+                  <Button
+                    type="dashed"
+                    onClick={add}
+                    style={{ width: "calc(65% - 30px)" }}
+                    icon={<PlusOutlined />}
+                  >
+                    Add Perk
+                    <Tooltip
+                      title={
+                        <span>
+                          You can add perks such as drinks, snacks, wrist bands
+                          etc. on top of tickets for event attendees. <br />
+                          Tickets validators will be able to scan QR code and
+                          validate an attendee's perk(s) using the mobile app.
+                        </span>
+                      }
+                    >
+                      <InfoCircleOutlined
+                        style={{ float: "right", marginTop: 4 }}
+                      />
+                    </Tooltip>
+                  </Button>
+                </Form.Item>
+              </>
+            )}
+          </Form.List>
         )}
 
         <Divider />

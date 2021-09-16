@@ -28,6 +28,7 @@ function EventPreview({ data, left, right = "32px", top, bottom = "32px" }) {
         bottom,
         top,
         zIndex: 10,
+        pointerEvents: visible ? undefined : "none",
       }}
     >
       <div
@@ -52,6 +53,7 @@ function EventPreview({ data, left, right = "32px", top, bottom = "32px" }) {
             borderTopLeftRadius: 16,
             borderTopRightRadius: 16,
           }}
+          alt="event cover"
           src={data.images?.[0]?.src || placeholderImg}
         />
         <div style={{ padding: "14px 20px" }}>

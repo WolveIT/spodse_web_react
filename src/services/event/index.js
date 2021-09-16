@@ -46,12 +46,14 @@ function get_new_event_doc(data) {
     isPrivate: data.isPrivate,
     tags: data.tags || [],
     ticketAnswer: data.ticketAnswer,
+    perks: data.perks || {},
     likes: {},
     stats: {
       totalInvited: 0,
       totalInvitesAccepted: 0,
       totalValidators: 0,
       totalWent: 0,
+      totalPerksAvailed: {},
     },
     createdAt: serverTimestamp(),
   };
