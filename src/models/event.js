@@ -33,10 +33,21 @@ export const fetchEvent = (eventId) => ({
   eventId,
 });
 
-export const fetchLatestEvent = ({ queryCursor, offset }) => ({
+export const fetchLatestEvent = ({ dir, offset, eventId }) => ({
   type: `${namespace}/fetchLatest`,
-  queryCursor,
+  dir,
   offset,
+  eventId,
+});
+
+export const fetchEventByMonth = ({ month, year }) => ({
+  type: `${namespace}/fetchByMonth`,
+  month,
+  year,
+});
+
+export const fetchStats = () => ({
+  type: `${namespace}/fetchStats`,
 });
 
 export const listenEvent = (eventId) => ({
@@ -148,6 +159,8 @@ export default {
   state: {
     current: undefined,
     latest: undefined,
+    monthEvents: [],
+    stats: undefined,
     tickets: undefined,
     createEventProgress: undefined,
     list: [],
@@ -162,6 +175,8 @@ export default {
     loading: {
       fetchCurrent: false,
       fetchLatest: false,
+      fetchByMonth: false,
+      stats: false,
       createEvent: false,
       goingList: false,
       invitedList: false,
@@ -240,20 +255,24 @@ export default {
       }
     },
 
-    *fetchLatest({ queryCursor, offset }, { put, call }) {
+    *fetchLatest({ dir, offset, eventId }, { put, call }) {
       try {
         yield put(startLoading("fetchLatest"));
 
-        let query = refs.events
-          .where("organizerId", "==", currUser().uid)
-          .orderBy("endsAt");
-        if (offset && queryCursor && query[queryCursor])
-          query = query[queryCursor](toFirestoreTime(offset));
-        else query = query.startAfter(db.Timestamp.now());
-        query = query.limit(1);
+        let query = refs.events;
+        if (eventId) query = query.doc(eventId);
+        else
+          query = query
+            .where("organizerId", "==", currUser().uid)
+            .orderBy("endsAt", dir === "prev" ? "desc" : "asc")
+            .startAfter(offset ? toFirestoreTime(offset) : db.Timestamp.now())
+            .limit(1);
 
-        let event = yield call(Firestore.get_list, query);
-        event = event.docs[0];
+        let event = yield call(
+          eventId ? Firestore.get : Firestore.get_list,
+          query
+        );
+        if (!eventId) event = event.docs[0];
         if (event) {
           const tickets = yield call(
             Firestore.get,
@@ -269,6 +288,39 @@ export default {
       }
     },
 
+    *fetchByMonth({ month, year }, { put, call }) {
+      try {
+        yield put(startLoading("fetchByMonth"));
+        const st = new Date(year, month, 1);
+        const et = new Date(year, month + 1, 0);
+        const events = yield call(
+          Firestore.get_list,
+          refs.events
+            .where("organizerId", "==", currUser().uid)
+            .where("startsAt", ">=", st)
+            .where("startsAt", "<=", et)
+        );
+        yield put({ type: "setState", monthEvents: events.docs });
+        yield put(stopLoading("fetchByMonth"));
+      } catch (error) {
+        localErrorHandler({ namespace, error, stopLoading: "fetchByMonth" });
+      }
+    },
+
+    *fetchStats(_, { put, call }) {
+      try {
+        yield put(startLoading("stats"));
+        const stats = yield call(
+          Firestore.get,
+          refs.userEventStats(currUser().uid)
+        );
+        yield put({ type: "setState", stats });
+        yield put(stopLoading("stats"));
+      } catch (error) {
+        localErrorHandler({ namespace, error, stopLoading: "stats" });
+      }
+    },
+
     *fetchGoing({ eventId, reset }, { put, select, call }) {
       try {
         if (reset === true) yield put(clearGoing());
@@ -279,8 +331,6 @@ export default {
         if (reset !== true && (goingNoMore || loading)) return;
 
         yield put(startLoading("goingList"));
-
-        console.log(yield select((state) => state[namespace].goingList));
 
         if (!listInstance)
           listInstance = new PaginatedList({

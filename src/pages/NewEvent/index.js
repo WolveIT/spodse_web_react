@@ -23,7 +23,7 @@ import Theme from "../../utils/theme";
 import Event from "../../services/event";
 import { globalErrorHandler } from "../../utils/errorHandler";
 import { useHistory, useLocation, useParams } from "react-router-dom";
-import { connect } from "dva";
+import { connect, useSelector } from "dva";
 import { fetchEvent, setFormData } from "../../models/event";
 import PageSpinner from "../../components/Spinner/PageSpinner";
 import EventPreview from "../../components/EventPreview";
@@ -92,6 +92,11 @@ export const disabledTime = (d, minDate, maxDate) => {
   };
 };
 
+function EventPreviewCard() {
+  const event = useSelector(({ event }) => event.formData);
+  return <EventPreview data={event} />;
+}
+
 function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
   const eventId = useParams().eventId;
   const pathname = useLocation().pathname;
@@ -116,6 +121,14 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
         ],
         closesAt: moment(event.closesAt.toDate()),
         images: event.images.map((img) => ({ src: img, type: "image/" })),
+        perks: Object.entries(event.perks).map(([title, qty]) => {
+          const split = qty.split("-");
+          return {
+            title,
+            qty: split[1],
+            qtyType: split[0],
+          };
+        }),
       });
     }
   }, [event]);
@@ -132,9 +145,16 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
       data.closesAt = data.closesAt.toDate();
       if (data.isPrivate === undefined) data.isPrivate = false;
       if (editMode) data.eventId = eventId;
-      data.perks = data.perks
-        .filter((item) => item.title?.length)
-        .reduce((acc, curr) => ({ ...acc, [curr.title]: curr.qty || 1 }), {});
+      data.perks =
+        data.perks
+          ?.filter((item) => item.title?.length)
+          .reduce(
+            (acc, curr) => ({
+              ...acc,
+              [curr.title]: `${curr.qtyType}-${curr.qty}` || 1,
+            }),
+            {}
+          ) || {};
       setProgress(0);
       Event[editMode ? "update" : "create"](data, setProgress)
         .then((eventId) => {
@@ -321,7 +341,7 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
             />
           </Form.Item>
         )}
-        {ticketAnswer && (
+        {form.getFieldValue("ticketAnswer") && (
           <Form.List name="perks">
             {(fields, { add, remove }) => (
               <>
@@ -340,7 +360,7 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
                       fieldKey={[fieldKey, "title"]}
                       noStyle
                     >
-                      <Input placeholder="Enter Perk Title" />
+                      <Input placeholder="Enter Coupon Title" />
                     </Form.Item>
                     <Form.Item
                       {...rest}
@@ -349,10 +369,22 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
                       noStyle
                     >
                       <InputNumber
-                        style={{ width: 160 }}
-                        placeholder="Max/Person"
+                        style={{ width: 140 }}
+                        placeholder="Quantity"
                         min={1}
                       />
+                    </Form.Item>
+                    <Form.Item
+                      {...rest}
+                      name={[name, "qtyType"]}
+                      fieldKey={[fieldKey, "qtyType"]}
+                      noStyle
+                      initialValue="p"
+                    >
+                      <Select defaultValue="p" style={{ minWidth: 108 }}>
+                        <Select.Option value="p">Per Person</Select.Option>
+                        <Select.Option value="e">Per Event</Select.Option>
+                      </Select>
                     </Form.Item>
                     <Hover hoverStyle={{ color: "#333" }}>
                       <MinusCircleOutlined
@@ -374,14 +406,15 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
                     style={{ width: "calc(65% - 30px)" }}
                     icon={<PlusOutlined />}
                   >
-                    Add Perk
+                    Add Coupon
                     <Tooltip
                       title={
                         <span>
-                          You can add perks such as drinks, snacks, wrist bands
-                          etc. on top of tickets for event attendees. <br />
+                          You can add coupons/perks such as drinks, snacks,
+                          wrist bands etc. on top of tickets for event
+                          attendees. <br />
                           Tickets validators will be able to scan QR code and
-                          validate an attendee's perk(s) using the mobile app.
+                          validate an attendee's coupon(s) using the mobile app.
                         </span>
                       }
                     >
@@ -428,7 +461,7 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
           ) : null}
         </Form.Item>
       </Form>
-      <EventPreview />
+      <EventPreviewCard />
     </>
   );
 }

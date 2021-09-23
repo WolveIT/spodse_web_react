@@ -28,6 +28,9 @@ const userEventsGoing = (uid) =>
 
 const allUserEventsGoing = db().collectionGroup("eventsGoing");
 
+const userEventStats = (uid) =>
+  users.doc(uid).collection("private").doc("stats");
+
 const userEventsOrganizing = (uid) =>
   db().collection("users").doc(uid).collection("eventsOrganizing");
 
@@ -52,6 +55,7 @@ export const refs = {
   users,
   userEventsGoing,
   allUserEventsGoing,
+  userEventStats,
   userEventsOrganizing,
   events,
   eventTickets,

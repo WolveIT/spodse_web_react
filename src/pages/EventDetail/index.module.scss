@@ -4,3 +4,22 @@
     border-radius: 0 !important;
   }
 }
+
+.perks_section {
+  width: 100%;
+  overflow: hidden;
+  margin-top: -0.5rem;
+  flex: 1;
+}
+
+.perk_item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem 0.5rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+
+  :last-child {
+    font-size: 16px;
+  }
+}

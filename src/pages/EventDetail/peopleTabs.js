@@ -1,5 +1,14 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Popover, Tabs, Tooltip, List, Divider, Collapse, Input } from "antd";
+import {
+  Popover,
+  Tabs,
+  Tooltip,
+  List,
+  Divider,
+  Collapse,
+  Input,
+  Empty,
+} from "antd";
 import LazyList from "../../components/LazyList";
 import AlertPopup from "../../components/AlertPopup";
 import { capitalize, placeholderAvatar, transformDates } from "../../utils";
@@ -414,6 +423,7 @@ export default function PeopleTabs({ event, listHeight = 375 }) {
           onEndReached={loadGoing}
           loading={goingLoading}
           dataSource={going}
+          emptyContent={<Empty />}
           renderItem={(item) => (
             <UserCard
               key={item.key}
@@ -458,6 +468,7 @@ export default function PeopleTabs({ event, listHeight = 375 }) {
           onEndReached={loadInvited}
           loading={invitedLoading}
           dataSource={invited}
+          emptyContent={<Empty />}
           renderItem={(item) => (
             <UserCard
               key={item.key}
@@ -502,6 +513,7 @@ export default function PeopleTabs({ event, listHeight = 375 }) {
             onEndReached={loadValidators}
             loading={validatorsLoading}
             dataSource={validators}
+            emptyContent={<Empty />}
             renderItem={(item) => (
               <UserCard
                 key={item.key}
@@ -533,6 +545,7 @@ export default function PeopleTabs({ event, listHeight = 375 }) {
           dataSource={Object.entries(event.likes || {})
             .map(([key, val]) => ({ key, id: key, ...(val || {}) }))
             .sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds)}
+          emptyContent={<Empty />}
           renderItem={(item) => (
             <UserCard
               key={item.key}

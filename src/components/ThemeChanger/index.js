@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { List, Popover } from "antd";
 import Theme from "../../utils/theme";
 import { setPopoverWidth } from "../PopoverWidth";
 import { BgColorsOutlined } from "@ant-design/icons";
+import { useHistory } from "react-router-dom";
 
 export default function ThemeChanger({
   containerStyle,
@@ -12,12 +13,15 @@ export default function ThemeChanger({
   style,
 }) {
   const [themeColor, setThemeColor] = useState(Theme.get());
+  const history = useHistory();
 
   const changeTheme = useCallback(
     (color) => {
       if (color !== themeColor) {
         Theme.set(color).then(function () {
           setThemeColor(color);
+          const loc = history.location.pathname + window.location.search;
+          history.replace(loc);
         });
       }
     },

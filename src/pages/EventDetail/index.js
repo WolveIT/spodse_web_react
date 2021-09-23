@@ -5,7 +5,15 @@ import EventActions from "../MyEvents/Actions";
 import PageSpinner from "../../components/Spinner/PageSpinner";
 import { listenEvent, unsubEvent } from "../../models/event";
 import Center from "../../components/Center";
-import { Card, Descriptions, Divider, Empty, Tag, Typography } from "antd";
+import {
+  Card,
+  Collapse,
+  Descriptions,
+  Divider,
+  Empty,
+  Tag,
+  Typography,
+} from "antd";
 import moment from "moment";
 import ReadMore from "react-read-more-read-less";
 import Theme from "../../utils/theme";
@@ -15,6 +23,9 @@ import TagsList from "../../components/TagsList";
 import ImagePicker from "../../components/ImagePicker";
 import PeopleTabs from "./peopleTabs";
 import { transformDates } from "../../utils";
+import { colors } from "../Dashboard";
+import styles from "./index.module.scss";
+import LazyList from "../../components/LazyList";
 
 function Schedule({ event }) {
   const startsAt = moment(event.startsAt.toDate());
@@ -32,6 +43,40 @@ function Label({ children, style }) {
     <span style={{ fontWeight: 500, color: "#333", ...(style || {}) }}>
       {children}
     </span>
+  );
+}
+
+function PerksSection({ event, listHeight }) {
+  const perks = Object.entries(event.perks || {});
+
+  return (
+    <div className={styles.perks_section}>
+      <LazyList
+        listHeight={listHeight}
+        dataSource={perks.sort((a, b) => a[0].localeCompare(b[0]))}
+        renderItem={([title, max]) => {
+          const [qtyType, qty] = max.split("-");
+          return (
+            <div className={styles.perk_item}>
+              <div>
+                <span>{title}</span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: "rgba(0, 0, 0, 0.60)",
+                    display: "inline-block",
+                    marginLeft: 4,
+                  }}
+                >
+                  (Max: {qty} {qtyType === "p" ? "Per Person" : "Per Event"})
+                </span>
+              </div>
+              <span>{event.stats?.totalPerksAvailed?.[title] || 0}</span>
+            </div>
+          );
+        }}
+      />
+    </div>
   );
 }
 
@@ -167,6 +212,16 @@ function EventDetail({ event, listenEvent, unsubEvent }) {
           />
         </div>
       ) : null}
+
+      <Divider />
+
+      <div>
+        <Collapse style={{ width: 500 }} ghost>
+          <Collapse.Panel header={<Label>Coupons Consumed</Label>}>
+            <PerksSection event={event} listHeight={180} />
+          </Collapse.Panel>
+        </Collapse>
+      </div>
 
       <Divider />
 

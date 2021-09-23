@@ -1,7 +1,8 @@
-import { Empty, List, Skeleton } from "antd";
+import { List, Skeleton } from "antd";
 import throttle from "lodash.throttle";
 import React, { useCallback } from "react";
 import PerfectScrollBar from "react-perfect-scrollbar";
+import Empty from "../Empty";
 
 export default function LazyList({
   onEndReached,
@@ -16,6 +17,7 @@ export default function LazyList({
   throttling = 300,
   bottomPadding = 150,
   containerStyle,
+  emptyContent = <Empty />,
   ...props
 }) {
   const onScrollDown = useCallback(
@@ -37,7 +39,7 @@ export default function LazyList({
   return (
     <PerfectScrollBar style={containerStyle} onScrollDown={onScrollDown}>
       {!loading && !dataSource.length ? (
-        <Empty />
+        <>{emptyContent} </>
       ) : (
         <List
           itemLayout="horizontal"

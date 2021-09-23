@@ -6,7 +6,7 @@ function getUpdateQuery(history) {
     const query = new URLSearchParams(location.search);
     Object.keys(queryObj).forEach((key) => {
       if (query.has(key)) query.delete(key);
-      query.append(key, queryObj[key]);
+      if (queryObj[key] !== undefined) query.append(key, queryObj[key]);
     });
     history.push({
       search: "?" + query.toString(),
