@@ -36,8 +36,10 @@ const userEventsOrganizing = (uid) =>
 
 const events = db().collection("events");
 
-const eventTickets = (eventId) =>
-  events.doc(eventId).collection("private").doc("tickets");
+const eventTickets = (eventId) => events.doc(eventId).collection("tickets");
+
+const eventTicketsList = (eventId) =>
+  events.doc(eventId).collection("private").doc("ticketsList");
 
 const eventInvites = (eventId) => events.doc(eventId).collection("invites");
 
@@ -59,6 +61,7 @@ export const refs = {
   userEventsOrganizing,
   events,
   eventTickets,
+  eventTicketsList,
   eventInvites,
   eventsAccControl,
   tickets,

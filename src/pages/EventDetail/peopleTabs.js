@@ -8,6 +8,9 @@ import {
   Collapse,
   Input,
   Empty,
+  Modal,
+  Form,
+  InputNumber,
 } from "antd";
 import LazyList from "../../components/LazyList";
 import AlertPopup from "../../components/AlertPopup";
@@ -145,17 +148,20 @@ function InviteUserSearch({ event }) {
   );
 
   const [msg, setMsg] = useState(
-    `Hi {{inviteeDetails.displayName}}!\nYou've been invited by ${inviterName} to join their event <strong>${event.title}</strong>. Click the button below to join the event.`
+    `Hi {{inviteeDetails.displayName}}!\nYou've been invited by ${inviterName} to join their event <strong>${event.title}</strong>.\n\nYou should have a mobile device to accept this invitation.\n\nClick the button below to join the event.`
   );
+
+  const [modal, setModal] = useState(false);
+  const [form] = Form.useForm();
 
   const onMessageChange = useCallback(({ target }) => {
     setMsg(target.value);
   }, []);
 
   const onSubmit = useCallback(
-    (emails, successCallback) => {
+    (emails, successCallback, perks) => {
       dispatch(
-        inviteUsers(event.id, emails, msg, () => {
+        inviteUsers(event.id, emails, msg, perks, () => {
           successCallback && successCallback();
           dispatch(fetchInvited(event.id, true));
         })
@@ -164,16 +170,59 @@ function InviteUserSearch({ event }) {
     [msg]
   );
 
+  const onInvite = useCallback((...args) => {
+    if (
+      Object.keys(event.perks).filter((p) => event.perks[p].startsWith("p"))
+        .length
+    )
+      setModal(args);
+    else onSubmit(...args);
+  }, []);
+
+  const onModalSubmit = useCallback(() => {
+    const args = [...modal];
+    args[2] = form.getFieldsValue();
+    onSubmit(...args);
+    setModal(false);
+  }, [modal]);
+
   return (
     <>
       <UserSearch
         loading={loading}
         exclusions={exclusions}
-        onSubmit={onSubmit}
+        onSubmit={onInvite}
         submitText="Invite"
         dataKey="email"
       />
       <InvitationMessageBox value={msg} onChange={onMessageChange} />
+      <Modal
+        title="Select Coupons"
+        visible={!!modal}
+        onOk={onModalSubmit}
+        onCancel={() => setModal(false)}
+      >
+        <Form form={form}>
+          {Object.keys(event.perks)
+            .filter((p) => event.perks[p].startsWith("p"))
+            .map((p) => (
+              <Form.Item
+                label={p}
+                name={p}
+                rules={[
+                  { required: true, message: "Please input your username!" },
+                ]}
+                initialValue={+event.perks[p].slice(2)}
+              >
+                <InputNumber
+                  style={{ width: 140 }}
+                  placeholder="Quantity"
+                  min={0}
+                />
+              </Form.Item>
+            ))}
+        </Form>
+      </Modal>
     </>
   );
 }

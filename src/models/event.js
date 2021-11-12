@@ -75,11 +75,18 @@ export const setFormData = (data) => ({
   formData: data,
 });
 
-export const inviteUsers = (eventId, emails, message, onComplete) => ({
+export const inviteUsers = (
+  eventId,
+  emails,
+  message,
+  perks = {},
+  onComplete
+) => ({
   type: `${namespace}/inviteUsers`,
   eventId,
   emails,
   message,
+  perks,
   onComplete,
 });
 
@@ -486,13 +493,16 @@ export default {
       }
     },
 
-    *inviteUsers({ eventId, emails, message, onComplete }, { put, call }) {
+    *inviteUsers(
+      { eventId, emails, message, perks, onComplete },
+      { put, call }
+    ) {
       try {
         emails = emails.filter(isValidEmail);
         if (!emails.length) throw new Error("No emails provided!");
 
         yield put(startLoading("inviteUsers"));
-        yield call(Event.invite_users, { eventId, emails, message });
+        yield call(Event.invite_users, { eventId, emails, message, perks });
         yield put(stopLoading("inviteUsers"));
         if (typeof onComplete === "function") onComplete();
       } catch (error) {
