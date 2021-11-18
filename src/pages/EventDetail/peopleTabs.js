@@ -11,6 +11,7 @@ import {
   Modal,
   Form,
   InputNumber,
+  message,
 } from "antd";
 import LazyList from "../../components/LazyList";
 import AlertPopup from "../../components/AlertPopup";
@@ -18,6 +19,7 @@ import { capitalize, placeholderAvatar, transformDates } from "../../utils";
 import moment from "moment";
 import CustomIcon from "../../components/Icon";
 import {
+  CopyOutlined,
   DeleteOutlined,
   InfoCircleOutlined,
   PieChartOutlined,
@@ -261,10 +263,12 @@ function ValidatorsUserSearch({ event }) {
 export function UserCard({
   profilePicture,
   displayName,
+  email,
   date,
   status,
   onDelete,
   onSuccessDelete,
+  invitationLink,
   ticketInfo,
   validationStats,
 }) {
@@ -281,6 +285,11 @@ export function UserCard({
       },
     });
   }, []);
+
+  const onCopy = useCallback(() => {
+    navigator.clipboard.writeText(invitationLink);
+    message.success("Invitation link copied to clipboard!");
+  }, [invitationLink]);
 
   const actions = [];
   if (validationStats)
@@ -361,6 +370,13 @@ export function UserCard({
         {status === "accepted" ? "Accepted" : "Pending"}
       </span>
     );
+  if (invitationLink) {
+    actions.push(
+      <Tooltip title="Copy Invitation Link">
+        <CopyOutlined onClick={onCopy} />
+      </Tooltip>
+    );
+  }
   if (onDelete?.method)
     actions.push(
       <Tooltip title="Delete">
@@ -379,21 +395,24 @@ export function UserCard({
             fallback={placeholderAvatar}
           />
         }
-        title={displayName}
+        title={
+          <>
+            {displayName}
+            {email && (
+              <div
+                style={{
+                  fontWeight: "normal",
+                  color: "rgba(0, 0, 0, 0.45)",
+                  fontSize: 12,
+                }}
+              >
+                {email}
+              </div>
+            )}
+          </>
+        }
         description={moment(date).format("D MMM YY - h:m a")}
       />
-      {false && status && (
-        <span
-          style={{
-            fontWeight: 500,
-            marginRight: 24,
-            fontSize: 13,
-            color: status === "accepted" ? "#42ba96" : "#F29339",
-          }}
-        >
-          {status === "accepted" ? "Accepted" : "Pending"}
-        </span>
-      )}
     </List.Item>
   );
 }
@@ -478,6 +497,7 @@ export default function PeopleTabs({ event, listHeight = 375 }) {
               key={item.key}
               profilePicture={item.profilePicture}
               displayName={item.displayName}
+              email={item.email}
               date={item.createdAt}
               onDelete={{
                 method: Event.remove_user,
@@ -527,6 +547,8 @@ export default function PeopleTabs({ event, listHeight = 375 }) {
               displayName={
                 item.inviteeDetails?.displayName || item.inviteeDetails?.email
               }
+              email={item.inviteeDetails?.email}
+              invitationLink={item.invitationLink}
               onDelete={
                 item.status?.value === "pending" && {
                   method: Event.remove_invited,
@@ -568,6 +590,7 @@ export default function PeopleTabs({ event, listHeight = 375 }) {
                 key={item.key}
                 profilePicture={item.userDetails?.profilePicture}
                 displayName={item.userDetails?.displayName}
+                email={item.userDetails?.email}
                 date={item.createdAt}
                 onDelete={
                   item.userDetails?.uid !==
@@ -599,6 +622,7 @@ export default function PeopleTabs({ event, listHeight = 375 }) {
             <UserCard
               key={item.key}
               profilePicture={item.profilePicture}
+              email={item.email}
               displayName={item.displayName || "N/A"}
               date={item.timestamp?.toDate()}
             />

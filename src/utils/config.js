@@ -89,7 +89,15 @@ export const routes = [
     route: {
       path: "/invitation",
     },
-    component: () => <Redirect to="/" />,
+    component: () => <Redirect to="/download-app" />,
+  },
+  {
+    route: {
+      path: "/download-app",
+      exact: true,
+    },
+    layoutType: "auth",
+    component: require("pages/DownloadApp").default,
   },
   {
     route: {

@@ -27,7 +27,11 @@ const tailLayout = {
 };
 
 function Signup({ loading, signup }) {
-  const onFinish = useCallback(signup, [signup]);
+  const onFinish = useCallback(
+    ({ profilePicture, ...rest }) =>
+      signup({ profilePicture: profilePicture[0], ...rest }),
+    [signup]
+  );
 
   return (
     <div style={{ textAlign: "center" }}>
