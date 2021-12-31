@@ -298,6 +298,16 @@ export function UserCard({
   }, [invitationLink]);
 
   const actions = [];
+  if (status)
+    actions.push(
+      <Tooltip placement="bottom" title={capitalize(status)}>
+        {status === "accepted" ? (
+          <CheckCircleFilled style={{ color: "#42ba96", fontSize: 15 }} />
+        ) : (
+          <CustomIcon type="icon-waiting" style={{ fontSize: 16 }} />
+        )}
+      </Tooltip>
+    );
   if (validationStats)
     actions.push(
       <Tooltip placement="bottom" title="Stats">
@@ -377,16 +387,6 @@ export function UserCard({
       </Tooltip>
     );
   }
-  if (status)
-    actions.push(
-      <Tooltip placement="bottom" title={capitalize(status)}>
-        {status === "accepted" ? (
-          <CheckCircleFilled style={{ color: "#42ba96", fontSize: 15 }} />
-        ) : (
-          <CustomIcon type="icon-waiting" style={{ fontSize: 16 }} />
-        )}
-      </Tooltip>
-    );
   if (onDelete?.method)
     actions.push(
       <Tooltip placement="bottom" title="Delete">
