@@ -206,6 +206,28 @@ export function remove_user({ uid, eventId }) {
   });
 }
 
+async function update_invite_perks({ eventId, inviteId, perks }) {
+  const updates = {};
+  Object.entries(perks || {}).forEach(([perk, val]) => {
+    if (Number.isInteger(val?.allotted))
+      updates[`perks.${perk}`] = `p-${val.allotted}`;
+  });
+
+  if (Object.keys(updates).length > 0)
+    return refs.eventInvites(eventId).doc(inviteId).update(updates);
+}
+
+async function update_ticket_perks({ eventId, ticketId, perks }) {
+  const updates = {};
+  Object.entries(perks || {}).forEach(([perk, val]) => {
+    if (Number.isInteger(val?.allotted))
+      updates[`perks.${perk}.allotted`] = val.allotted;
+  });
+
+  if (Object.keys(updates).length > 0)
+    return refs.eventTickets(eventId).doc(ticketId).update(updates);
+}
+
 const Event = {
   create,
   update,
@@ -214,6 +236,8 @@ const Event = {
   add_validators,
   remove_validator,
   remove_user,
+  update_invite_perks,
+  update_ticket_perks,
   delete: _delete,
 };
 

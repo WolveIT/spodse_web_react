@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Popover,
   Tabs,
@@ -24,6 +24,8 @@ import {
   InfoCircleOutlined,
   PieChartOutlined,
   RightOutlined,
+  EditOutlined,
+  CheckCircleFilled,
 } from "@ant-design/icons";
 import ServerImg from "../../components/ServerImg";
 import Theme from "../../utils/theme";
@@ -38,8 +40,10 @@ import {
 import UserSearch from "./userSearch";
 import { useQuery } from "../../hooks/useQuery";
 import Event from "../../services/event";
+import TabSearch from "./tabSearch";
+import PerksInfo from "./perksInfo";
 
-function FieldValue({ field, value }) {
+export function FieldValue({ field, value }) {
   if (!value) return null;
   return (
     <p style={{ color: "#5d5d5d", fontSize: 12, display: "flex" }}>
@@ -268,9 +272,11 @@ export function UserCard({
   status,
   onDelete,
   onSuccessDelete,
-  invitationLink,
-  ticketInfo,
   validationStats,
+  ticketInfo,
+  perks,
+  onPerksEdit,
+  invitationLink,
 }) {
   const onClick = useCallback(() => {
     AlertPopup({
@@ -294,7 +300,7 @@ export function UserCard({
   const actions = [];
   if (validationStats)
     actions.push(
-      <Tooltip title="Stats">
+      <Tooltip placement="bottom" title="Stats">
         <Popover
           trigger="click"
           content={
@@ -304,11 +310,11 @@ export function UserCard({
                 value={validationStats.totalTicketsValidated || 0 + ""}
                 key="tickets"
               />
-              {Object.entries(validationStats.perksValidated || {}).map(
-                ([perk, val]) => (
+              {Object.entries(validationStats.perksValidated || {})
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([perk, val]) => (
                   <FieldValue key={perk} field={perk} value={val + ""} />
-                )
-              )}
+                ))}
             </div>
           }
           title="Validation Stats"
@@ -319,7 +325,7 @@ export function UserCard({
     );
   if (ticketInfo)
     actions.push(
-      <Tooltip title="Ticket Info">
+      <Tooltip placement="bottom" title="Ticket Info">
         <Popover
           trigger="click"
           content={
@@ -356,31 +362,38 @@ export function UserCard({
         </Popover>
       </Tooltip>
     );
-  if (status)
+  if (perks)
     actions.push(
-      <span
-        style={{
-          display: "inline-block",
-          fontWeight: 500,
-          fontSize: 13,
-          color: status === "accepted" ? "#42ba96" : "#F29339",
-          marginRight: status === "accepted" && 24,
-        }}
-      >
-        {status === "accepted" ? "Accepted" : "Pending"}
-      </span>
+      <Tooltip title="Coupons" placement="bottom">
+        <span>
+          <PerksInfo perks={perks} onEdit={onPerksEdit} />
+        </span>
+      </Tooltip>
     );
   if (invitationLink) {
     actions.push(
-      <Tooltip title="Copy Invitation Link">
+      <Tooltip placement="bottom" title="Copy Invitation Link">
         <CopyOutlined onClick={onCopy} />
       </Tooltip>
     );
   }
+  if (status)
+    actions.push(
+      <Tooltip placement="bottom" title={capitalize(status)}>
+        {status === "accepted" ? (
+          <CheckCircleFilled style={{ color: "#42ba96", fontSize: 15 }} />
+        ) : (
+          <CustomIcon type="icon-waiting" style={{ fontSize: 16 }} />
+        )}
+      </Tooltip>
+    );
   if (onDelete?.method)
     actions.push(
-      <Tooltip title="Delete">
-        <DeleteOutlined onClick={onClick} />
+      <Tooltip placement="bottom" title="Delete">
+        <DeleteOutlined
+          style={{ cursor: onDelete.disabled && "not-allowed" }}
+          onClick={!onDelete.disabled && onClick}
+        />
       </Tooltip>
     );
 
@@ -419,8 +432,10 @@ export function UserCard({
 
 export default function PeopleTabs({ event, listHeight = 375 }) {
   const [query, updateQuery] = useQuery();
-  const peopleTab = query.get("peopleTab") || "1";
+  const peopleTab = query.get("peopleTab") || "going";
+  const searchFunc = useRef();
   const dispatch = useDispatch();
+  const [_, refreshComponent] = useState();
   const {
     going,
     invited,
@@ -428,7 +443,9 @@ export default function PeopleTabs({ event, listHeight = 375 }) {
     goingLoading,
     invitedLoading,
     validatorsLoading,
-    tickets,
+    searchMode,
+    searchResults,
+    searchLoading,
   } = useSelector(({ event }) => ({
     going: event.goingList,
     invited: event.invitedList,
@@ -436,34 +453,46 @@ export default function PeopleTabs({ event, listHeight = 375 }) {
     goingLoading: event.loading.goingList,
     invitedLoading: event.loading.invitedList,
     validatorsLoading: event.loading.validatorsList,
-    tickets: event.tickets?.tickets || {},
+    searchMode: event.searchResultsMode,
+    searchResults: event.searchResults,
+    searchLoading: event.loading.searchResults,
   }));
+
+  const getSearchFunc = useCallback((func) => {
+    searchFunc.current = func;
+  }, []);
 
   const loadGoing = useCallback(
     (reset) => {
+      if (searchMode && reset !== true) return searchFunc.current(true);
       dispatch(fetchGoing(event.id, reset));
     },
-    [event.id]
+    [event.id, searchMode]
   );
 
   const loadInvited = useCallback(
     (reset) => {
+      if (searchMode && reset !== true) {
+        return searchFunc.current(true);
+      }
       dispatch(fetchInvited(event.id, reset));
     },
-    [event.id]
+    [event.id, searchMode]
   );
 
   const loadValidators = useCallback(
     (reset) => {
+      if (searchMode && reset !== true) return searchFunc.current(true);
       dispatch(fetchValidators(event.id, reset));
     },
-    [event.id]
+    [event.id, searchMode]
   );
 
   const loaders = {
-    1: loadGoing,
-    2: loadInvited,
-    3: loadValidators,
+    going: loadGoing,
+    invited: loadInvited,
+    validators: loadValidators,
+    likes: () => {},
   };
 
   useEffect(() => {
@@ -477,158 +506,205 @@ export default function PeopleTabs({ event, listHeight = 375 }) {
   const allowNewInvites = !(regClosed || occupied);
   const isEnded = event.endsAt?.isBefore(now);
   const hasTickets = ["internal", "external"].includes(event.ticketAnswer);
+  const tabKeys = Object.keys(loaders);
 
   return (
-    <Tabs
-      activeKey={peopleTab}
-      onChange={(key) => {
-        updateQuery({ peopleTab: key });
-      }}
-    >
-      <Tabs.TabPane tab={`Going (${event.attendeesCount})`} key="1">
-        <LazyList
-          listHeight={listHeight}
-          onEndReached={loadGoing}
-          loading={goingLoading}
-          dataSource={going}
-          emptyContent={<Empty />}
-          renderItem={(item) => (
-            <UserCard
-              key={item.key}
-              profilePicture={item.profilePicture}
-              displayName={item.displayName}
-              email={item.email}
-              date={item.createdAt}
-              onDelete={{
-                method: Event.remove_user,
-                args: [{ uid: item.id, eventId: event.id }],
-              }}
-              onSuccessDelete={() => loadGoing(true)}
-              ticketInfo={(() => {
-                const key = Object.keys(tickets).find(
-                  (e) => tickets[e]?.uid === item.id
-                );
-                return key ? { id: key, ...tickets[key] } : undefined;
-              })()}
-            />
-          )}
-        />
-      </Tabs.TabPane>
-      <Tabs.TabPane
-        tab={
-          `Invited` +
-          (typeof event.stats?.totalInvited === "number"
-            ? ` (${event.stats?.totalInvited})`
-            : "")
-        }
-        key="2"
+    <div style={{ position: "relative" }}>
+      <Tabs
+        activeKey={peopleTab}
+        onChange={(key) => {
+          updateQuery({ peopleTab: key });
+        }}
       >
-        {allowNewInvites ? (
-          <>
-            <div style={{ fontSize: 12, marginBottom: 6, fontWeight: 500 }}>
-              Invite users
-            </div>
-            <InviteUserSearch event={event} />
-            <Divider style={{ marginBottom: 8 }} />
-          </>
-        ) : null}
-        <LazyList
-          listHeight={listHeight}
-          onEndReached={loadInvited}
-          loading={invitedLoading}
-          dataSource={invited}
-          emptyContent={<Empty />}
-          renderItem={(item) => (
-            <UserCard
-              key={item.key}
-              date={item.createdAt}
-              status={item.status?.value}
-              profilePicture={item.inviteeDetails?.profilePicture}
-              displayName={
-                item.inviteeDetails?.displayName || item.inviteeDetails?.email
-              }
-              email={item.inviteeDetails?.email}
-              invitationLink={item.invitationLink}
-              onDelete={
-                item.status?.value === "pending" && {
-                  method: Event.remove_invited,
-                  args: [{ invitationId: item.id, eventId: event.id }],
-                }
-              }
-              onSuccessDelete={() => loadInvited(true)}
-            />
-          )}
-        />
-      </Tabs.TabPane>
-      {hasTickets && (
-        <Tabs.TabPane
-          tab={
-            `Validators` +
-            (typeof event.stats?.totalValidators === "number"
-              ? ` (${event.stats?.totalValidators})`
-              : "")
-          }
-          key="3"
-        >
-          {isEnded ? null : (
-            <>
-              <div style={{ fontSize: 12, marginBottom: 6, fontWeight: 500 }}>
-                Add Ticket Validators
-              </div>
-              <ValidatorsUserSearch event={event} />
-              <Divider style={{ marginBottom: 8 }} />
-            </>
-          )}
+        <Tabs.TabPane tab={`Going (${event.attendeesCount})`} key={tabKeys[0]}>
           <LazyList
             listHeight={listHeight}
-            onEndReached={loadValidators}
-            loading={validatorsLoading}
-            dataSource={validators}
+            onEndReached={loadGoing}
+            loading={searchMode ? searchLoading : goingLoading}
+            dataSource={searchMode ? searchResults : going}
             emptyContent={<Empty />}
             renderItem={(item) => (
               <UserCard
                 key={item.key}
-                profilePicture={item.userDetails?.profilePicture}
-                displayName={item.userDetails?.displayName}
-                email={item.userDetails?.email}
+                profilePicture={item.profilePicture}
+                displayName={item.displayName}
+                email={item.email}
                 date={item.createdAt}
-                onDelete={
-                  item.userDetails?.uid !==
-                    (event.organizerId || event.organizer) && {
-                    method: Event.remove_validator,
-                    args: [{ uid: item.userDetails?.uid, eventId: event.id }],
-                  }
+                perks={item.ticket?.perks}
+                onPerksEdit={
+                  item.ticket &&
+                  ((perks) =>
+                    Event.update_ticket_perks({
+                      eventId: event.id,
+                      ticketId: item.ticket.id,
+                      perks,
+                    }).then(() => {
+                      Object.keys(item.ticket?.perks || {}).forEach((perk) => {
+                        item.ticket.perks[perk] = {
+                          ...item.ticket.perks[perk],
+                          allotted: perks[perk].allotted,
+                        };
+                      });
+                      refreshComponent(Date.now());
+                    }))
                 }
-                validationStats={item.stats}
-                onSuccessDelete={() => loadValidators(true)}
+                onDelete={{
+                  method: Event.remove_user,
+                  args: [{ uid: item.id, eventId: event.id }],
+                }}
+                onSuccessDelete={() => loadGoing(true)}
+                ticketInfo={item.ticket}
               />
             )}
           />
         </Tabs.TabPane>
-      )}
-      <Tabs.TabPane
-        tab={
-          `Likes` + (event.likes ? ` (${Object.keys(event.likes).length})` : "")
-        }
-        key="4"
-      >
-        <LazyList
-          listHeight={listHeight}
-          dataSource={Object.entries(event.likes || {})
-            .map(([key, val]) => ({ key, id: key, ...(val || {}) }))
-            .sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds)}
-          emptyContent={<Empty />}
-          renderItem={(item) => (
-            <UserCard
-              key={item.key}
-              profilePicture={item.profilePicture}
-              email={item.email}
-              displayName={item.displayName || "N/A"}
-              date={item.timestamp?.toDate()}
+        <Tabs.TabPane
+          tab={
+            `Invited` +
+            (typeof event.stats?.totalInvited === "number"
+              ? ` (${event.stats?.totalInvited})`
+              : "")
+          }
+          key={tabKeys[1]}
+        >
+          {allowNewInvites ? (
+            <>
+              <div style={{ fontSize: 12, marginBottom: 6, fontWeight: 500 }}>
+                Invite users
+              </div>
+              <InviteUserSearch event={event} />
+              <Divider style={{ marginBottom: 8 }} />
+            </>
+          ) : null}
+
+          <LazyList
+            listHeight={listHeight}
+            onEndReached={loadInvited}
+            loading={searchMode ? searchLoading : invitedLoading}
+            dataSource={searchMode ? searchResults : invited}
+            emptyContent={<Empty />}
+            renderItem={(item) => (
+              <UserCard
+                key={item.key}
+                date={item.createdAt}
+                status={item.status?.value}
+                profilePicture={item.inviteeDetails?.profilePicture}
+                displayName={
+                  item.inviteeDetails?.displayName || item.inviteeDetails?.email
+                }
+                email={item.inviteeDetails?.email}
+                invitationLink={item.invitationLink}
+                perks={Object.entries(item.perks || {}).reduce(
+                  (acc, [key, val]) => ({
+                    ...acc,
+                    [key]: { allotted: val.split("-")[1] },
+                  }),
+                  {}
+                )}
+                onPerksEdit={
+                  item.status?.value === "pending" &&
+                  ((perks) =>
+                    Event.update_invite_perks({
+                      eventId: event.id,
+                      inviteId: item.id,
+                      perks,
+                    }).then(() => {
+                      Object.keys(item.perks || {}).forEach((perk) => {
+                        item.perks[perk] = `p-${perks[perk].allotted}`;
+                      });
+                      refreshComponent(Date.now());
+                    }))
+                }
+                onDelete={{
+                  method: Event.remove_invited,
+                  disabled: item.status?.value === "accepted",
+                  args: [{ invitationId: item.id, eventId: event.id }],
+                }}
+                onSuccessDelete={() => loadInvited(true)}
+              />
+            )}
+          />
+        </Tabs.TabPane>
+        {hasTickets && (
+          <Tabs.TabPane
+            tab={
+              `Validators` +
+              (typeof event.stats?.totalValidators === "number"
+                ? ` (${event.stats?.totalValidators})`
+                : "")
+            }
+            key={tabKeys[2]}
+          >
+            {isEnded ? null : (
+              <>
+                <div style={{ fontSize: 12, marginBottom: 6, fontWeight: 500 }}>
+                  Add Ticket Validators
+                </div>
+                <ValidatorsUserSearch event={event} />
+                <Divider style={{ marginBottom: 8 }} />
+              </>
+            )}
+            <LazyList
+              listHeight={listHeight}
+              onEndReached={loadValidators}
+              loading={searchMode ? searchLoading : validatorsLoading}
+              dataSource={searchMode ? searchResults : validators}
+              emptyContent={<Empty />}
+              renderItem={(item) => (
+                <UserCard
+                  key={item.key}
+                  profilePicture={item.userDetails?.profilePicture}
+                  displayName={item.userDetails?.displayName}
+                  email={item.userDetails?.email}
+                  date={item.createdAt}
+                  onDelete={
+                    item.userDetails?.uid !==
+                      (event.organizerId || event.organizer) && {
+                      method: Event.remove_validator,
+                      args: [{ uid: item.userDetails?.uid, eventId: event.id }],
+                    }
+                  }
+                  validationStats={item.stats}
+                  onSuccessDelete={() => loadValidators(true)}
+                />
+              )}
             />
-          )}
-        />
-      </Tabs.TabPane>
-    </Tabs>
+          </Tabs.TabPane>
+        )}
+        <Tabs.TabPane
+          tab={
+            `Likes` +
+            (event.likes ? ` (${Object.keys(event.likes).length})` : "")
+          }
+          key={tabKeys[3]}
+        >
+          <LazyList
+            listHeight={listHeight}
+            dataSource={
+              searchMode
+                ? searchResults
+                : Object.entries(event.likes || {})
+                    .map(([key, val]) => ({ key, id: key, ...(val || {}) }))
+                    .sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds)
+            }
+            emptyContent={<Empty />}
+            renderItem={(item) => (
+              <UserCard
+                key={item.key}
+                profilePicture={item.profilePicture}
+                email={item.email}
+                displayName={item.displayName || "N/A"}
+                date={item.timestamp?.toDate()}
+              />
+            )}
+          />
+        </Tabs.TabPane>
+      </Tabs>
+      <TabSearch
+        tab={peopleTab}
+        eventId={event.id}
+        getSearchFunc={getSearchFunc}
+      />
+    </div>
   );
 }
