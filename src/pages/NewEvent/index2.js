@@ -11,11 +11,11 @@ import {
   Switch,
   Tooltip,
 } from "antd";
-import React, { useCallback, useEffect, useState } from "react";
 import TextField from "@mui/material/TextField";
 import AdapterDateFns from "@mui/lab/AdapterDateFns";
 import DateTimePicker from "@mui/lab/DateTimePicker";
 import LocalizationProvider from "@mui/lab/LocalizationProvider";
+import React, { useCallback, useEffect, useState } from "react";
 import { historyBackWFallback, range } from "../../utils";
 import moment from "moment";
 import TagsList from "../../components/TagsList";
@@ -101,16 +101,7 @@ function EventPreviewCard() {
   return <EventPreview data={event} />;
 }
 
-const renderInput = (props) => (
-  <Input
-    type="text"
-    onClick={props.onClick}
-    value={props.value}
-    onChange={props.onChange}
-  />
-);
-
-function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endDate }) {
+function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
   const eventId = useParams().eventId;
   const pathname = useLocation().pathname;
   const editMode = pathname.slice(pathname.lastIndexOf("/") + 1) === "edit";
@@ -122,18 +113,17 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endDate }) {
 
   const [form] = Form.useForm();
   const [ticketAnswer, setTicketAnswer] = useState(false);
-  const [startDate, setStartDate] = useState(false);
-  const [minDate, setMinDate] = useState(new Date(Date.now()));
   const [progress, setProgress] = useState();
-  const [deadline, setDeadline] = useState(false);
 
   useEffect(() => {
     if (editMode && event) {
       form.setFieldsValue({
         ...event,
-        startDate: event.startsAt.toDate(),
-        endDate: event.endsAt.toDate(),
-        closesAt: event.closesAt.toDate(),
+        schedule: [
+          moment(event.startsAt.toDate()),
+          moment(event.endsAt.toDate()),
+        ],
+        closesAt: moment(event.closesAt.toDate()),
         images: event.images.map((img) => ({ src: img, type: "image/" })),
         perks: Object.entries(event.perks).map(([title, qty]) => {
           const split = qty.split("-");
@@ -144,23 +134,19 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endDate }) {
           };
         }),
       });
-      setMinDate(event.startsAt.toDate());
-      if (event.endsAt.toDate() === event.closesAt.toDate()) setDeadline(false);
-      else setDeadline(true);
     }
   }, [event]);
 
   useEffect(() => {
-    if ((endDate || form.getFieldValue("closesAt")) && !editMode) {
-      form.setFields([{ name: "closesAt", value: endDate }]);
-    }
-  }, [endDate]);
+    if (endsAt && !form.getFieldValue("closesAt"))
+      form.setFields([{ name: "closesAt", value: endsAt }]);
+  }, [endsAt]);
 
   const onSubmit = useCallback(
     (data) => {
-      data.startsAt = data.startDate;
-      data.endsAt = data.endDate;
-      data.closesAt = data.closesAt;
+      data.startsAt = data.schedule[0].toDate();
+      data.endsAt = data.schedule[1].toDate();
+      data.closesAt = data.closesAt.toDate();
       if (data.isPrivate === undefined) data.isPrivate = false;
       if (editMode) data.eventId = eventId;
       data.perks =
@@ -193,13 +179,11 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endDate }) {
     [form]
   );
 
-  const onValuesChange = useCallback(() => {
-    if (form.getFieldValue("startDate")) {
-      setMinDate(form.getFieldValue("startDate"));
-    }
+  const onValuesChange = useCallback((values) => {
+    // console.log("values: ", values);
     setFormData(form.getFieldsValue());
   }, []);
-
+  // console.log("rerender", form.getFieldsValue());
   if (editMode && (!event || fetchLoading))
     return <PageSpinner spinnerProps={{ size: "default" }} fixed={false} />;
 
@@ -241,49 +225,107 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endDate }) {
             ))}
           </Select>
         </Form.Item>
+        {/* <Form.Item
+          name="schedule"
+          label="Event Schedule"
+          rules={[{ required: true }]}
+        >
+          <DatePicker.RangePicker
+            showTime={{ format: "HH:mm" }}
+            format="YYYY-MM-DD HH:mm"
+            disabledDate={(current) => {
+              return current && current < moment().startOf("day");
+            }}
+            disabledTime={(current) => {
+              console.log("current disable time: ", current);
 
+              return disabledTime(current, moment().add(1, "minutes"));
+            }}
+          />
+        </Form.Item> */}
         <LocalizationProvider dateAdapter={AdapterDateFns}>
           <Form.Item
             name="startDate"
             label="Start Date"
-            initialValue=""
             rules={[{ required: true }]}
           >
             <DateTimePicker
-              renderInput={(props) => (
-                <TextField InputLabelProps={{ shrink: false }} {...props} />
-              )}
-              label={() => {}}
-              onChange={() => {
-                setStartDate(true);
-              }}
-              minDateTime={Date.now()}
+              renderInput={(props) => <TextField {...props} />}
+              // label="Start Date"
+              minDate={Date.now()}
+              minTime={new Date(Date.now())}
+              // value={
+              //   form.getFieldValue("startDate")
+              //     ? form.getFieldValue("startDate")
+              //     : Date.now()
+              // }
+              // onChange={(newValue) => {
+              //   console.log("newValue: ", newValue);
+              //   // let prevData = form.getFieldsValue();
+              //   // console.log("prevData: ", prevData);
+
+              //   // if (prevData.schedule) {
+              //   //   prevData.schedule[0]._d = newValue;
+              //   //   form.setFieldsValue({ ...prevData });
+              //   //   setFormData(form.getFieldsValue());
+              //   // } else {
+              //   //   let newData = { ...prevData, schedule: [{ _d: newValue }] };
+              //   //   console.log("newData: ", newData);
+              //   //   form.setFieldsValue(newData);
+              //   //   setFormData(form.getFieldsValue());
+              //   // }
+
+              //   form.setFieldsValue({
+              //     ...form.getFieldsValue(),
+              //     startDate: newValue,
+              //   });
+              // console.log("form Data", form.getFieldsValue());
+              // setFormData(form.getFieldsValue());
+              // }}
             />
           </Form.Item>
         </LocalizationProvider>
 
-        {(form.getFieldValue("startDate") || editMode) && (
-          <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <Form.Item
-              name="endDate"
-              initialValue=""
-              label="End Date"
-              rules={[{ required: true }]}
-            >
-              <DateTimePicker
-                label={() => {}}
-                onChange={() => {
-                  setStartDate(true);
-                }}
-                renderInput={(props) => (
-                  <TextField InputLabelProps={{ shrink: false }} {...props} />
-                )}
-                minDateTime={minDate.getTime() + 300000}
-              />
-            </Form.Item>
-          </LocalizationProvider>
-        )}
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
+          <Form.Item
+            name="endDate"
+            label="End Date"
+            // rules={[{ required: true }]}
+            shouldUpdate={true}
+          >
+            {({ getFieldsValue }) => {
+              return <pre>{JSON.stringify(getFieldsValue(), null, 2)}</pre>;
+            }}
 
+            {/* {console.log("form data", form.getFieldsValue())} */}
+            {/* <DateTimePicker
+              renderInput={(props) => <TextField {...props} />}
+              label="End Date"
+              // disabled={form.getFieldValue("startDate") ? false : true}
+              minDate={
+                form.getFieldValue("startDate")
+                  ? form.getFieldValue("startDate")
+                  : null
+              }
+              minTime={
+                form.getFieldValue("startDate")
+                  ? form.getFieldValue("startDate")
+                  : null
+              }
+              // value={
+              //   form.getFieldValue("endDate")
+              //     ? form.getFieldValue("endDate")
+              //     : Date.now()
+              // }
+              // onChange={(newValue) => {
+              //   // let prevData = form.getFieldsValue();
+              //   // prevData.schedule[1] = { _d: newValue };
+              //   form.setFieldsValue({ endDate: newValue });
+              //   setFormData(form.getFieldsValue());
+              // }}
+            /> */}
+          </Form.Item>
+        </LocalizationProvider>
         <Form.Item
           name="location"
           label="Event Address"
@@ -331,38 +373,29 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endDate }) {
         <Form.Item name="ageLimit" label="Attendees Age Limit">
           <InputNumber min={3} max={199} placeholder="Enter Age" />
         </Form.Item>
-
         <Form.Item
-          name="closesAtSwitch"
+          name="closesAt"
           label="Registrations Deadline"
-          dependencies={["endDate", "startDate"]}
+          dependencies={["schedule"]}
+          rules={[{ required: true }]}
         >
-          <Switch
-            style={{ marginLeft: "1rem" }}
-            checked={deadline}
-            onChange={() => {
-              setDeadline(!deadline);
-            }}
+          <DatePicker
+            format="YYYY-MM-DD HH:mm"
+            // disabledDate={(current) => {
+            //   if (current) {
+            //     const end = form.getFieldValue("schedule")?.[1];
+            //     return disabledDate(current, moment(), end);
+            //   }
+            // }}
+            // disabledTime={(current) => {
+            //   if (current) {
+            //     const end = form.getFieldValue("schedule")?.[1];
+            //     return disabledTime(current, moment(), end);
+            //   }
+            // }}
+            showTime={{ format: "HH:mm" }}
           />
         </Form.Item>
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Form.Item
-            name="closesAt"
-            label=""
-            dependencies={["endDate", "startDate"]}
-            rules={[{ required: true }]}
-            hidden={!deadline}
-          >
-            <DateTimePicker
-              label={() => {}}
-              renderInput={(props) => (
-                <TextField InputLabelProps={{ shrink: false }} {...props} />
-              )}
-              maxDateTime={form.getFieldValue("endDate")}
-              minDateTime={new Date(Date.now())}
-            />
-          </Form.Item>
-        </LocalizationProvider>
         <Form.Item
           rules={[{ required: true }]}
           initialValue={false}
@@ -527,7 +560,7 @@ export default connect(
   ({ event }) => ({
     event: event.current,
     fetchLoading: event.loading.fetchCurrent,
-    endDate: event.formData.endDate,
+    endsAt: event.formData.schedule?.[1],
   }),
   { fetchEvent, setFormData }
 )(NewEvent);
