@@ -10,6 +10,8 @@ import { connect } from "dva";
 import PageSpinner from "./components/Spinner/PageSpinner";
 import { routeCustomWrapper, routes } from "./utils/config";
 import { setComputedRoutes } from "./models/router";
+import LocalizationProvider from "@mui/lab/LocalizationProvider";
+import AdapterDateFns from "@mui/lab/AdapterDateFns";
 
 //layouts
 import EmptyLayout from "./layouts/EmptyLayout";
@@ -138,7 +140,11 @@ const Route = ({
     <RouterRoute {...props}>
       <CustomWrapper authType={authType} layoutType={layoutType} {...props}>
         <AuthWrapper type={authType}>
-          <LayoutWrapper type={layoutType}>{children}</LayoutWrapper>
+          <LayoutWrapper type={layoutType}>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              {children}
+            </LocalizationProvider>
+          </LayoutWrapper>
         </AuthWrapper>
       </CustomWrapper>
     </RouterRoute>

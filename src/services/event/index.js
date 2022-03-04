@@ -36,7 +36,7 @@ function get_new_event_doc(data) {
     description: data.description || "",
     startsAt: data.startsAt,
     endsAt: data.endsAt,
-    closesAt: data.closesAt,
+    closesAt: data.closesAt || data.endsAt,
     genre: data.genre,
     images: data.images || [],
     location: data.location,
@@ -90,8 +90,9 @@ function get_new_event_tickets_doc(data) {
 
 async function create(data, progress) {
   if (
-    data.closesAt.getTime() < Date.now() ||
-    data.closesAt.getTime() > data.endsAt.getTime() + 60000
+    data.closesAt &&
+    (data.closesAt.getTime() < Date.now() ||
+      data.closesAt.getTime() > data.endsAt.getTime())
   )
     throw new Error(
       `Registration deadline must be a date/time in future and less than event's end date/time`
