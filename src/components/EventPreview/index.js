@@ -64,9 +64,7 @@ export function EventCard({
             justifyContent: "space-between",
           }}
         >
-          <div>
-            {moment(data.schedule?.[0] || new Date()).format("D.M.YYYY")}
-          </div>
+          <div>{moment(data.startDate || new Date()).format("D.M.YYYY")}</div>
           <div
             style={{
               width: "60%",
