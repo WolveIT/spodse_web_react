@@ -40,7 +40,7 @@ function EventPreviewCard() {
   return <EventPreview data={event} />;
 }
 
-function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endDate }) {
+function NewEvent({ event, fetchEvent, fetchLoading, setFormData }) {
   const eventId = useParams().eventId;
   const pathname = useLocation().pathname;
   const editMode = pathname.slice(pathname.lastIndexOf("/") + 1) === "edit";
@@ -58,13 +58,18 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endDate }) {
   const [showDeadline, setShowDeadline] = useState(false);
 
   useEffect(() => {
-    if (editMode && event) {
+    if (editMode && event && !fetchLoading) {
       form.setFieldsValue({
         ...event,
         startDate: event.startsAt.toDate(),
         endDate: event.endsAt.toDate(),
         closesAt: event.closesAt.toDate(),
         images: event.images.map((img) => ({ src: img, type: "image/" })),
+        sponsorImages: event.sponsorImages.map((img) => ({
+          src: img,
+          type: "image/",
+        })),
+        logoImage: [{ src: event.logoImage, type: "image/" }],
         perks: Object.entries(event.perks).map(([title, qty]) => {
           const split = qty.split("-");
           return {
@@ -77,14 +82,7 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endDate }) {
       setMinDate(event.startsAt.toDate());
       setShowDeadline(event.endsAt.toDate() !== event.closesAt.toDate());
     }
-  }, [event]);
-
-  // useEffect(() => {
-  //   const closesAt = form.getFieldValue("closesAt");
-  //   if (endDate && !closesAt) {
-  //     form.setFieldsValue({ closesAt: endDate });
-  //   }
-  // }, [endDate]);
+  }, [event, fetchLoading]);
 
   const onSubmit = useCallback(
     (data) => {
@@ -153,6 +151,10 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endDate }) {
           rules={[{ required: true }]}
         >
           <Input placeholder="Enter event's title" />
+        </Form.Item>
+
+        <Form.Item name="logoImage" label="Logo">
+          <ImagePicker count={1} />
         </Form.Item>
 
         <Form.Item
@@ -434,6 +436,12 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endDate }) {
 
         <Divider />
 
+        {form.getFieldValue("ticketAnswer") && (
+          <Form.Item name="sponsorImages" label="Sponsor Images">
+            <ImagePicker count={4} />
+          </Form.Item>
+        )}
+
         <Form.Item>
           <Button
             disabled={progress !== undefined}
@@ -462,7 +470,6 @@ export default connect(
   ({ event }) => ({
     event: event.current,
     fetchLoading: event.loading.fetchCurrent,
-    endDate: event.formData.endDate,
   }),
   { fetchEvent, setFormData }
 )(NewEvent);

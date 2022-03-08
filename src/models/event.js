@@ -239,11 +239,11 @@ export default {
       try {
         yield put(startLoading("fetchCurrent"));
 
-        const [event, tickets] = yield all[
-          (call(Firestore.get, refs.events.doc(eventId)),
-          call(Firestore.get, refs.eventTickets(eventId)))
-        ];
-        yield put({ type: "setState", current: event, tickets });
+        const [event, tickets] = yield all([
+          call(Firestore.get, refs.events.doc(eventId)),
+          call(Firestore.get, refs.eventTickets(eventId)),
+        ]);
+        yield put({ type: "setState", tickets, current: event });
 
         yield put(stopLoading("fetchCurrent"));
       } catch (error) {

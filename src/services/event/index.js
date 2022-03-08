@@ -38,7 +38,9 @@ function get_new_event_doc(data) {
     endsAt: data.endsAt,
     closesAt: data.closesAt || data.endsAt,
     genre: data.genre,
+    sponsorImages: data.sponsorImages || [],
     images: data.images || [],
+    logoImage: data.logoImage || null,
     location: data.location,
     maxAttendees: data.maxAttendees,
     title: data.title,
@@ -103,11 +105,42 @@ async function create(data, progress) {
   data.eventId = eventRef.id;
 
   //upload images
-  const _seed = randomNumber(0.85, 0.95);
+  const _seed = randomNumber(0.9, 0.95);
+  const totalImages =
+    data.images.length + data.logoImage.length + data.sponsorImages.length;
+  let currProgress = 0;
+
   data.images = await Storage.upload(
     { uploadPath: `/EventImages/${data.eventId}/`, files: data.images },
-    (v) => progress(v * _seed)
+    (v) => {
+      progress(((v * data.images.length) / totalImages) * _seed);
+    }
   );
+  currProgress += 100 * (data.images.length / totalImages) * _seed;
+
+  data.sponsorImages = await Storage.upload(
+    {
+      uploadPath: `/EventImages/${data.eventId}/sponsors/`,
+      files: data.sponsorImages,
+    },
+    (v) => {
+      progress(
+        currProgress + ((v * data.sponsorImages.length) / totalImages) * _seed
+      );
+    }
+  );
+  currProgress += 100 * (data.sponsorImages.length / totalImages) * _seed;
+
+  data.logoImage = await Storage.upload(
+    { uploadPath: `/EventImages/${data.eventId}/logo/`, files: data.logoImage },
+    (v) => {
+      progress(
+        currProgress + ((v * data.logoImage.length) / totalImages) * _seed
+      );
+    }
+  );
+  if (data.logoImage?.length) data.logoImage = data.logoImage[0];
+  currProgress = _seed * 100;
 
   //generate ticket
   if (data.ticketAnswer) {
@@ -120,7 +153,7 @@ async function create(data, progress) {
       throw new Error(
         `No. of tickets should match the Attendees Limit!\nAttendees Limit: ${data.maxAttendees}, Tickets provides: ${data.tickets.length}`
       );
-    progress(_seed * 100 + randomInt(1, 5));
+    progress(currProgress + randomInt(1, 3));
   }
 
   //create event in DB
@@ -156,6 +189,32 @@ async function update(data, progress) {
     images.push(img.src);
   }
   data.images = images;
+
+  const sponsorImages = await Storage.upload(
+    {
+      uploadPath: `/EventImages/${data.eventId}/sponsors/`,
+      files: data.sponsorImages.filter((img) => img instanceof File),
+    },
+    (v) => progress(v * _seed)
+  );
+  for (const img of data.sponsorImages) {
+    if (img instanceof File) continue;
+    sponsorImages.push(img.src);
+  }
+  data.sponsorImages = sponsorImages;
+
+  const logoImage = await Storage.upload(
+    {
+      uploadPath: `/EventImages/${data.eventId}/logo/`,
+      files: data.logoImage.filter((img) => img instanceof File),
+    },
+    (v) => progress(v * _seed)
+  );
+  for (const img of data.logoImage) {
+    if (img instanceof File) continue;
+    logoImage.push(img.src);
+  }
+  data.logoImage = logoImage?.length ? logoImage[0] : data.logoImage;
 
   //update document in DB
   const newData = get_new_event_doc(data);
