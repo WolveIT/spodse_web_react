@@ -1,6 +1,5 @@
 import {
   Button,
-  DatePicker,
   Divider,
   Form,
   Input,
@@ -12,8 +11,7 @@ import {
   Tooltip,
 } from "antd";
 import React, { useCallback, useEffect, useState } from "react";
-import { historyBackWFallback, range } from "../../utils";
-import moment from "moment";
+import { historyBackWFallback } from "../../utils";
 import TagsList from "../../components/TagsList";
 import ImagePicker from "../../components/ImagePicker";
 import Title from "antd/lib/typography/Title";
@@ -33,71 +31,16 @@ import {
   PlusOutlined,
 } from "@ant-design/icons";
 import Hover from "../../components/Hover";
+import MuiDateTimePicker from "../../components/MuiDateTimePicker";
 
 const genres = ["Food & Drink", "Festival", "Event", "Sports"];
-
-export const disabledDate = (d, minDate, maxDate) => {
-  if (d == null) {
-    return null;
-  }
-
-  return (
-    (minDate != null && d.isBefore(minDate) && !d.isSame(minDate, "day")) ||
-    (maxDate != null && d.isAfter(maxDate) && !d.isSame(maxDate, "day"))
-  );
-};
-
-export const disabledTime = (d, minDate, maxDate) => {
-  let hours = [],
-    mins = [];
-  if (d == null) {
-    return null;
-  }
-
-  if (minDate && d.isSame(minDate, "day")) {
-    hours = [
-      minDate.hour() > 0
-        ? { start: 0, end: minDate.hour() - 1 }
-        : { start: 0, end: -1 },
-    ];
-    mins = [
-      (hour) =>
-        hour === minDate.hour() && minDate.minutes() > 0
-          ? { start: 0, end: minDate.minutes() - 1 }
-          : { start: 0, end: -1 },
-    ];
-  }
-
-  if (maxDate && d.isSame(maxDate, "day")) {
-    hours.push({ start: maxDate.hour() + 1, end: 24 });
-    mins.push((hour) =>
-      hour === maxDate.hour()
-        ? { start: maxDate.minutes() + 1, end: 60 }
-        : { start: 0, end: -1 }
-    );
-  }
-
-  return {
-    disabledHours: () => {
-      return hours.reduce(
-        (acc, curr) => acc.concat(range(curr.start, curr.end)),
-        []
-      );
-    },
-    disabledMinutes: (hours) =>
-      mins.reduce((acc, curr) => {
-        const min = curr(hours);
-        return acc.concat(range(min.start, min.end));
-      }, []),
-  };
-};
 
 function EventPreviewCard() {
   const event = useSelector(({ event }) => event.formData);
   return <EventPreview data={event} />;
 }
 
-function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
+function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endDate }) {
   const eventId = useParams().eventId;
   const pathname = useLocation().pathname;
   const editMode = pathname.slice(pathname.lastIndexOf("/") + 1) === "edit";
@@ -109,17 +52,18 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
 
   const [form] = Form.useForm();
   const [ticketAnswer, setTicketAnswer] = useState(false);
+  const [startDate, setStartDate] = useState(null);
+  const [minDate, setMinDate] = useState(new Date());
   const [progress, setProgress] = useState();
+  const [showDeadline, setShowDeadline] = useState(false);
 
   useEffect(() => {
     if (editMode && event) {
       form.setFieldsValue({
         ...event,
-        schedule: [
-          moment(event.startsAt.toDate()),
-          moment(event.endsAt.toDate()),
-        ],
-        closesAt: moment(event.closesAt.toDate()),
+        startDate: event.startsAt.toDate(),
+        endDate: event.endsAt.toDate(),
+        closesAt: event.closesAt.toDate(),
         images: event.images.map((img) => ({ src: img, type: "image/" })),
         perks: Object.entries(event.perks).map(([title, qty]) => {
           const split = qty.split("-");
@@ -130,19 +74,23 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
           };
         }),
       });
+      setMinDate(event.startsAt.toDate());
+      setShowDeadline(event.endsAt.toDate() !== event.closesAt.toDate());
     }
   }, [event]);
 
-  useEffect(() => {
-    if (endsAt && !form.getFieldValue("closesAt"))
-      form.setFields([{ name: "closesAt", value: endsAt }]);
-  }, [endsAt]);
+  // useEffect(() => {
+  //   const closesAt = form.getFieldValue("closesAt");
+  //   if (endDate && !closesAt) {
+  //     form.setFieldsValue({ closesAt: endDate });
+  //   }
+  // }, [endDate]);
 
   const onSubmit = useCallback(
     (data) => {
-      data.startsAt = data.schedule[0].toDate();
-      data.endsAt = data.schedule[1].toDate();
-      data.closesAt = data.closesAt.toDate();
+      data.startsAt = data.startDate;
+      data.endsAt = data.endDate;
+      data.closesAt = data.closesAt;
       if (data.isPrivate === undefined) data.isPrivate = false;
       if (editMode) data.eventId = eventId;
       data.perks =
@@ -176,6 +124,9 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
   );
 
   const onValuesChange = useCallback(() => {
+    if (form.getFieldValue("startDate")) {
+      setMinDate(form.getFieldValue("startDate"));
+    }
     setFormData(form.getFieldsValue());
   }, []);
 
@@ -193,6 +144,7 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
         onFinishFailed={console.log}
         onValuesChange={onValuesChange}
         form={form}
+        layout="vertical"
         name="new-event-form"
       >
         <Form.Item
@@ -202,6 +154,7 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
         >
           <Input placeholder="Enter event's title" />
         </Form.Item>
+
         <Form.Item
           name="genre"
           label="Event Genre"
@@ -210,7 +163,7 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
           <Select
             allowClear
             showSearch
-            style={{ width: 200, textTransform: "capitalize" }}
+            style={{ width: 230, textTransform: "capitalize" }}
             placeholder="Select a genre"
           >
             {genres.map((genre) => (
@@ -220,22 +173,36 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
             ))}
           </Select>
         </Form.Item>
+
         <Form.Item
-          name="schedule"
-          label="Event Schedule"
+          name="startDate"
+          label="Start Date"
+          initialValue=""
           rules={[{ required: true }]}
+          style={{ width: 230 }}
         >
-          <DatePicker.RangePicker
-            showTime={{ format: "HH:mm" }}
-            format="YYYY-MM-DD HH:mm"
-            disabledDate={(current) =>
-              current && current < moment().startOf("day")
-            }
-            disabledTime={(current) =>
-              disabledTime(current, moment().add(1, "minutes"))
-            }
+          <MuiDateTimePicker
+            placeholder="Enter Start Date"
+            onChange={setStartDate}
+            minDateTime={Date.now()}
           />
         </Form.Item>
+
+        {(startDate || editMode) && (
+          <Form.Item
+            name="endDate"
+            label="End Date"
+            initialValue=""
+            rules={[{ required: true }]}
+            style={{ width: 230 }}
+          >
+            <MuiDateTimePicker
+              placeholder="Enter End Date"
+              minDateTime={minDate.getTime() + 300000}
+            />
+          </Form.Item>
+        )}
+
         <Form.Item
           name="location"
           label="Event Address"
@@ -258,7 +225,9 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
             placeholder="Describe your event to your audience"
           />
         </Form.Item>
+
         <Divider />
+
         <Form.Item
           name="maxAttendees"
           label="Attendees Limit"
@@ -278,34 +247,50 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
             },
           ]}
         >
-          <InputNumber min={1} max={99999} placeholder="Enter Limit" />
-        </Form.Item>
-        <Form.Item name="ageLimit" label="Attendees Age Limit">
-          <InputNumber min={3} max={199} placeholder="Enter Age" />
-        </Form.Item>
-        <Form.Item
-          name="closesAt"
-          label="Registrations Deadline"
-          dependencies={["schedule"]}
-          rules={[{ required: true }]}
-        >
-          <DatePicker
-            format="YYYY-MM-DD HH:mm"
-            disabledDate={(current) => {
-              if (current) {
-                const end = form.getFieldValue("schedule")?.[1];
-                return disabledDate(current, moment(), end);
-              }
-            }}
-            disabledTime={(current) => {
-              if (current) {
-                const end = form.getFieldValue("schedule")?.[1];
-                return disabledTime(current, moment(), end);
-              }
-            }}
-            showTime={{ format: "HH:mm" }}
+          <InputNumber
+            style={{ width: 230 }}
+            min={1}
+            max={99999}
+            placeholder="Enter Limit"
           />
         </Form.Item>
+
+        <Form.Item name="ageLimit" label="Attendees Age Limit">
+          <InputNumber
+            style={{ width: 230 }}
+            min={3}
+            max={199}
+            placeholder="Enter Age"
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="closesAtSwitch"
+          label="Registrations Deadline"
+          dependencies={["endDate", "startDate"]}
+        >
+          <Switch
+            checked={showDeadline}
+            onChange={() => {
+              setShowDeadline(!showDeadline);
+            }}
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="closesAt"
+          dependencies={["endDate", "startDate"]}
+          rules={[{ required: showDeadline }]}
+          hidden={!showDeadline}
+          style={{ width: 230 }}
+        >
+          <MuiDateTimePicker
+            placeholder="Enter Registration Deadline"
+            maxDateTime={form.getFieldValue("endDate")}
+            minDateTime={Date.now()}
+          />
+        </Form.Item>
+
         <Form.Item
           rules={[{ required: true }]}
           initialValue={false}
@@ -315,7 +300,7 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
           <Select
             disabled={editMode}
             onChange={setTicketAnswer}
-            style={{ width: 200 }}
+            style={{ width: 230 }}
             defaultValue={false}
           >
             <Select.Option key="no-ticket" value={false}>
@@ -329,18 +314,20 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
             </Select.Option>
           </Select>
         </Form.Item>
+
         {ticketAnswer === "external" && (
           <Form.Item
             rules={[{ required: true, message: "File is required" }]}
             name="externalTicketsFile"
           >
             <FilePicker
-              accept=".xlsx,.xls,.txt,.csv"
               width={240}
+              accept=".xlsx,.xls,.txt,.csv"
               multiple={false}
             />
           </Form.Item>
         )}
+
         {form.getFieldValue("ticketAnswer") && (
           <Form.List name="perks">
             {(fields, { add, remove }) => (
@@ -434,14 +421,19 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endsAt }) {
         <Form.Item name="isPrivate" label="Private Event">
           <Switch defaultChecked={editMode ? event?.isPrivate : false} />
         </Form.Item>
+
         <Form.Item name="tags" label="Tags">
           <TagsList />
         </Form.Item>
+
         <Divider />
+
         <Form.Item name="images" label="Upload Images">
           <ImagePicker count={4} />
         </Form.Item>
+
         <Divider />
+
         <Form.Item>
           <Button
             disabled={progress !== undefined}
@@ -470,7 +462,7 @@ export default connect(
   ({ event }) => ({
     event: event.current,
     fetchLoading: event.loading.fetchCurrent,
-    endsAt: event.formData.schedule?.[1],
+    endDate: event.formData.endDate,
   }),
   { fetchEvent, setFormData }
 )(NewEvent);
