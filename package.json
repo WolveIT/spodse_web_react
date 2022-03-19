@@ -15,6 +15,7 @@
     "antd-theme-generator": "^1.2.8",
     "dva": "2.6.0-beta.22",
     "firebase": "^7.18.0",
+    "fuse.js": "^6.5.3",
     "history": "^5.0.0",
     "lodash.debounce": "^4.0.8",
     "lodash.get": "^4.4.2",
@@ -37,7 +38,9 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "deploy": "npm run build && firebase deploy --only hosting"
+    "deploy": "npm run build && firebase deploy --only hosting",
+    "deploy-staging": "npm run build && firebase hosting:channel:deploy staging",
+    "staging-to-prod": "firebase hosting:clone spodse-800b3:staging spodse-800b3:live"
   },
   "eslintConfig": {
     "extends": "react-app"

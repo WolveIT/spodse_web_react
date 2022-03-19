@@ -1,5 +1,5 @@
 import Storage from "../storage";
-import { delay, randHashString, randomInt, randomNumber } from "../utils/utils";
+import { delay, randomInt, randomNumber, randString } from "../utils/utils";
 import Papa from "papaparse";
 import {
   currUser,
@@ -14,7 +14,7 @@ const BC = true; //whether backwards compatible or not
 async function generateTickets(qty) {
   const arr = [];
   for (let i = 0; i < qty; ++i) {
-    arr.push(randHashString(16));
+    arr.push(randString(10));
   }
   return arr;
 }
@@ -53,7 +53,7 @@ function get_new_event_doc(data) {
       totalInvitesAccepted: 0,
       totalValidators: 0,
       totalWent: 0,
-      totalPerksAvailed: {},
+      totalPerksConsumed: {},
     },
     createdAt: serverTimestamp(),
   };
@@ -77,15 +77,7 @@ function get_new_event_doc(data) {
 function get_new_event_tickets_doc(data) {
   const ticketsMap = {};
   data.tickets.forEach((ticket) => (ticketsMap[ticket] = null));
-  return {
-    tickets: ticketsMap,
-    eventId: data.eventId,
-    isPrivate: data.isPrivate,
-    startsAt: data.startsAt,
-    endsAt: data.endsAt,
-    eventCreatedAt: data.createdAt || serverTimestamp(),
-    createdAt: serverTimestamp(),
-  };
+  return ticketsMap;
 }
 
 async function create(data, progress) {
@@ -127,7 +119,10 @@ async function create(data, progress) {
   const batch = db().batch();
   batch.set(eventRef, get_new_event_doc(data));
   if (data.ticketAnswer && data.tickets.length)
-    batch.set(refs.eventTickets(data.eventId), get_new_event_tickets_doc(data));
+    batch.set(
+      refs.eventTicketsList(data.eventId),
+      get_new_event_tickets_doc(data)
+    );
   await batch.commit();
   progress(100);
   await delay(200);
@@ -175,11 +170,12 @@ async function _delete(eventId) {
   return functions().httpsCallable("eventDelete")({ eventId });
 }
 
-async function invite_users({ eventId, emails, message }) {
+async function invite_users({ eventId, emails, message, perks }) {
   return functions().httpsCallable("createMultipleEventInvites")({
     eventId,
     emails,
     message,
+    perks,
   });
 }
 
@@ -211,6 +207,28 @@ export function remove_user({ uid, eventId }) {
   });
 }
 
+async function update_invite_perks({ eventId, inviteId, perks }) {
+  const updates = {};
+  Object.entries(perks || {}).forEach(([perk, val]) => {
+    if (Number.isInteger(val?.allotted))
+      updates[`perks.${perk}`] = `p-${val.allotted}`;
+  });
+
+  if (Object.keys(updates).length > 0)
+    return refs.eventInvites(eventId).doc(inviteId).update(updates);
+}
+
+async function update_ticket_perks({ eventId, ticketId, perks }) {
+  const updates = {};
+  Object.entries(perks || {}).forEach(([perk, val]) => {
+    if (Number.isInteger(val?.allotted))
+      updates[`perks.${perk}.allotted`] = val.allotted;
+  });
+
+  if (Object.keys(updates).length > 0)
+    return refs.eventTickets(eventId).doc(ticketId).update(updates);
+}
+
 const Event = {
   create,
   update,
@@ -219,6 +237,8 @@ const Event = {
   add_validators,
   remove_validator,
   remove_user,
+  update_invite_perks,
+  update_ticket_perks,
   delete: _delete,
 };
 

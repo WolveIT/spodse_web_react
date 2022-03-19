@@ -351,7 +351,7 @@ function PerksSection({ event }) {
           const denominator =
             qtyType === "p" ? event.stats?.totalWent * +qty : +qty;
           const percent =
-            ((event.stats?.totalPerksAvailed?.[title] || 0) /
+            ((event.stats?.totalPerksConsumed?.[title] || 0) /
               (denominator || 1)) *
             100;
           return (
@@ -369,7 +369,7 @@ function PerksSection({ event }) {
               </span>
               <div>
                 <span>
-                  {event.stats?.totalPerksAvailed?.[title] || 0} /{" "}
+                  {event.stats?.totalPerksConsumed?.[title] || 0} /{" "}
                   <span style={{ fontSize: 11 }}>{denominator}</span>
                 </span>
                 <span

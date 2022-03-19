@@ -71,7 +71,7 @@ function PerksSection({ event, listHeight }) {
                   (Max: {qty} {qtyType === "p" ? "Per Person" : "Per Event"})
                 </span>
               </div>
-              <span>{event.stats?.totalPerksAvailed?.[title] || 0}</span>
+              <span>{event.stats?.totalPerksConsumed?.[title] || 0}</span>
             </div>
           );
         }}

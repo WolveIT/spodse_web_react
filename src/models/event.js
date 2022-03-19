@@ -1,4 +1,5 @@
 import { message } from "antd";
+import Algolia from "../services/algolia";
 import Event from "../services/event";
 import Firestore from "../services/firestore";
 import { currUser, db, refs } from "../services/utils/firebase_config";
@@ -6,18 +7,28 @@ import { PaginatedList } from "../services/utils/paginated_list";
 import { dispatch, toFirestoreTime } from "../utils";
 import { localErrorHandler } from "../utils/errorHandler";
 import { isValidEmail } from "../utils/validations";
+import Fuse from "fuse.js";
 
 const namespace = "event";
+
+async function fetchUserTickets(users, ticketsList, eventId) {
+  const keys = Object.keys(ticketsList);
+  const tickets = await Promise.all(
+    users.map((user) => {
+      const ticket = keys.find((t) => ticketsList[t] === user.id);
+      return ticket
+        ? Firestore.get(refs.eventTickets(eventId).doc(ticket))
+        : Promise.resolve();
+    })
+  );
+  return tickets;
+}
 
 async function fetchUsersList(docs) {
   const users = await Promise.all(
     docs.map((doc) => Firestore.get(doc._original.ref.parent.parent))
   );
-  return users.map((user, i) => ({
-    key: user.id,
-    ...user,
-    createdAt: docs[i].createdAt.toDate(),
-  }));
+  return users;
 }
 
 const startLoading = (loadingType) => ({ type: "startLoading", loadingType });
@@ -75,11 +86,18 @@ export const setFormData = (data) => ({
   formData: data,
 });
 
-export const inviteUsers = (eventId, emails, message, onComplete) => ({
+export const inviteUsers = (
+  eventId,
+  emails,
+  message,
+  perks = {},
+  onComplete
+) => ({
   type: `${namespace}/inviteUsers`,
   eventId,
   emails,
   message,
+  perks,
   onComplete,
 });
 
@@ -154,6 +172,22 @@ export const clearEventsList = () => {
   };
 };
 
+export const searchPeople = ({ eventId, term, tab, paginate = false }) => {
+  return {
+    type: `${namespace}/searchPeople`,
+    eventId,
+    term,
+    tab,
+    paginate,
+  };
+};
+
+export const resetSearchPeople = () => {
+  return {
+    type: `${namespace}/resetSearchPeople`,
+  };
+};
+
 export default {
   namespace,
   state: {
@@ -167,6 +201,10 @@ export default {
     goingList: [],
     invitedList: [],
     validatorsList: [],
+    searchResultsMode: false,
+    searchResults: [],
+    searchResultsPage: 0,
+    searchResultsNoMore: false,
     listInstance: null,
     goingListInstance: null,
     invitedListInstance: null,
@@ -182,6 +220,7 @@ export default {
       invitedList: false,
       validatorsList: false,
       list: false,
+      searchResults: false,
       inviteUsers: false,
       addValidators: false,
       delete: false,
@@ -214,7 +253,7 @@ export default {
       );
 
       const unsub2 = Firestore.listen(
-        refs.eventTickets(eventId),
+        refs.eventTicketsList(eventId),
         (tickets) => {
           dispatch({
             type: `${namespace}/setState`,
@@ -241,7 +280,7 @@ export default {
 
         const [event, tickets] = yield all[
           (call(Firestore.get, refs.events.doc(eventId)),
-          call(Firestore.get, refs.eventTickets(eventId)))
+          call(Firestore.get, refs.eventTicketsList(eventId)))
         ];
         yield put({ type: "setState", current: event, tickets });
 
@@ -276,7 +315,7 @@ export default {
         if (event) {
           const tickets = yield call(
             Firestore.get,
-            refs.eventTickets(event.id)
+            refs.eventTicketsList(event.id)
           );
           yield put({ type: "setState", tickets });
         }
@@ -347,12 +386,24 @@ export default {
 
         const docs = yield call(listInstance.get_next);
         if (docs.length < perBatch) goingNoMore = true;
+        const ticketsList = yield select((state) => state[namespace].tickets);
         const users = yield call(fetchUsersList, docs);
+        const tickets = yield call(
+          fetchUserTickets,
+          users,
+          ticketsList || {},
+          eventId
+        );
 
         yield put({
           type: "appendList",
           name: "goingList",
-          list: users,
+          list: users.map((user, i) => ({
+            key: user.id,
+            ticket: tickets[i],
+            ...user,
+            createdAt: docs[i].createdAt.toDate(),
+          })),
         });
         yield put(stopLoading("goingList"));
       } catch (error) {
@@ -486,13 +537,16 @@ export default {
       }
     },
 
-    *inviteUsers({ eventId, emails, message, onComplete }, { put, call }) {
+    *inviteUsers(
+      { eventId, emails, message, perks, onComplete },
+      { put, call }
+    ) {
       try {
         emails = emails.filter(isValidEmail);
         if (!emails.length) throw new Error("No emails provided!");
 
         yield put(startLoading("inviteUsers"));
-        yield call(Event.invite_users, { eventId, emails, message });
+        yield call(Event.invite_users, { eventId, emails, message, perks });
         yield put(stopLoading("inviteUsers"));
         if (typeof onComplete === "function") onComplete();
       } catch (error) {
@@ -510,6 +564,88 @@ export default {
         if (typeof onComplete === "function") onComplete();
       } catch (error) {
         localErrorHandler({ namespace, error, stopLoading: "addValidators" });
+      }
+    },
+
+    *searchPeople({ eventId, term, tab, paginate }, { put, call, select }) {
+      try {
+        if (
+          term?.length < 3 ||
+          !["going", "invited", "validators", "likes"].includes(tab)
+        )
+          return;
+
+        yield put({ type: "setState", searchResultsMode: true });
+        if (tab === "likes") {
+          const event = yield select((state) => state[namespace].current);
+          const fuse = new Fuse(
+            Object.entries(event.likes || {}).map(([key, val]) => ({
+              key,
+              id: key,
+              ...(val || {}),
+            })),
+            {
+              minMatchCharLength: 2,
+              keys: ["displayName", "email"],
+              threshold: 0.4,
+            }
+          );
+          yield put({
+            type: "setState",
+            searchResults: fuse.search(term).map((el) => el.item),
+          });
+          return;
+        }
+
+        yield put(startLoading("searchResults"));
+        const {
+          searchResultsPage,
+          searchResultsNoMore,
+          tickets: ticketsList,
+          searchResults,
+        } = yield select((state) => state[namespace]);
+
+        if (paginate && searchResultsNoMore) {
+          yield put(stopLoading("searchResults"));
+          return;
+        }
+
+        const res = yield call([Algolia[tab], "search"], term, {
+          hitsPerPage: perBatch,
+          page: paginate ? searchResultsPage + 1 : 0,
+          filters: `eventId:${eventId}`,
+        });
+
+        res.hits.forEach((item) => {
+          if (item.createdAt) item.createdAt = new Date(item.createdAt);
+          item.id = item.objectID;
+          item.key = item.objectID;
+        });
+
+        if (tab === "going") {
+          res.hits.forEach((user, i) => {
+            user.id = user.uid;
+          });
+          const tickets = yield call(
+            fetchUserTickets,
+            res.hits,
+            ticketsList || {},
+            eventId
+          );
+          res.hits.forEach((user, i) => {
+            user.ticket = tickets[i];
+          });
+        }
+
+        yield put({
+          type: "setState",
+          searchResults: paginate ? searchResults.concat(res.hits) : res.hits,
+          searchResultsPage: paginate ? searchResultsPage + 1 : 0,
+          searchResultsNoMore: res.hits.length < perBatch,
+        });
+        yield put(stopLoading("searchResults"));
+      } catch (error) {
+        localErrorHandler({ namespace, error, stopLoading: "searchResults" });
       }
     },
 
@@ -536,6 +672,16 @@ export default {
       return {
         ...state,
         ...(typeof newState === "function" ? newState(state) : newState),
+      };
+    },
+    resetSearchPeople(state) {
+      return {
+        ...state,
+        searchResultsMode: false,
+        searchResults: [],
+        searchResultsPage: 0,
+        searchResultsNoMore: false,
+        loading: { ...state.loading, searchResults: false },
       };
     },
     startLoading(state, { loadingType }) {
