@@ -5,6 +5,7 @@ import {
   Input,
   InputNumber,
   message,
+  Modal,
   Progress,
   Select,
   Switch,
@@ -32,6 +33,7 @@ import {
 } from "@ant-design/icons";
 import Hover from "../../components/Hover";
 import MuiDateTimePicker from "../../components/MuiDateTimePicker";
+import TicketPreview from "../../components/TicketPreview";
 
 const genres = ["Food & Drink", "Festival", "Event", "Sports"];
 
@@ -56,6 +58,7 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData }) {
   const [minDate, setMinDate] = useState(new Date());
   const [progress, setProgress] = useState();
   const [showDeadline, setShowDeadline] = useState(false);
+  const [ticketPreview, setTicketPreview] = useState(false);
 
   useEffect(() => {
     if (editMode && event && !fetchLoading) {
@@ -65,11 +68,15 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData }) {
         endDate: event.endsAt.toDate(),
         closesAt: event.closesAt.toDate(),
         images: event.images.map((img) => ({ src: img, type: "image/" })),
-        sponsorImages: event.sponsorImages.map((img) => ({
-          src: img,
-          type: "image/",
-        })),
-        logoImage: [{ src: event.logoImage, type: "image/" }],
+        sponsorImages:
+          event.sponsorImages?.map((img) => ({
+            src: img,
+            type: "image/",
+          })) || [],
+        logoImage:
+          typeof event.logoImage === "string"
+            ? [{ src: event.logoImage, type: "image/" }]
+            : null,
         perks: Object.entries(event.perks).map(([title, qty]) => {
           const split = qty.split("-");
           return {
@@ -80,7 +87,9 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData }) {
         }),
       });
       setMinDate(event.startsAt.toDate());
-      setShowDeadline(event.endsAt.toDate() !== event.closesAt.toDate());
+      setShowDeadline(
+        event.endsAt.toDate().getTime() !== event.closesAt.toDate().getTime()
+      );
     }
   }, [event, fetchLoading]);
 
@@ -293,29 +302,40 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData }) {
           />
         </Form.Item>
 
-        <Form.Item
-          rules={[{ required: true }]}
-          initialValue={false}
-          name="ticketAnswer"
-          label="Ticketeting"
-        >
-          <Select
-            disabled={editMode}
-            onChange={setTicketAnswer}
-            style={{ width: 230 }}
-            defaultValue={false}
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <Form.Item
+            rules={[{ required: true }]}
+            initialValue={false}
+            name="ticketAnswer"
+            label="Ticketing"
           >
-            <Select.Option key="no-ticket" value={false}>
-              No Tickets
-            </Select.Option>
-            <Select.Option key="internal" value={"internal"}>
-              Autogenerate Tickets
-            </Select.Option>
-            <Select.Option key="external" value={"external"}>
-              Upload Tickets File
-            </Select.Option>
-          </Select>
-        </Form.Item>
+            <Select
+              disabled={editMode}
+              onChange={setTicketAnswer}
+              style={{ width: 230 }}
+              defaultValue={false}
+            >
+              <Select.Option key="no-ticket" value={false}>
+                No Tickets
+              </Select.Option>
+              <Select.Option key="internal" value={"internal"}>
+                Autogenerate Tickets
+              </Select.Option>
+              <Select.Option key="external" value={"external"}>
+                Upload Tickets File
+              </Select.Option>
+            </Select>
+          </Form.Item>
+          {form.getFieldValue("ticketAnswer") && (
+            <Button
+              style={{ marginTop: 5 }}
+              onClick={() => setTicketPreview(true)}
+              type="link"
+            >
+              preview ticket
+            </Button>
+          )}
+        </div>
 
         {ticketAnswer === "external" && (
           <Form.Item
@@ -425,7 +445,7 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData }) {
         </Form.Item>
 
         <Form.Item name="tags" label="Tags">
-          <TagsList />
+          <TagsList maxTagLength={30} />
         </Form.Item>
 
         <Divider />
@@ -462,6 +482,16 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData }) {
         </Form.Item>
       </Form>
       <EventPreviewCard />
+      <Modal
+        title="Ticket Preview"
+        destroyOnClose={true}
+        width="fit-content"
+        footer={null}
+        onCancel={() => setTicketPreview(false)}
+        visible={ticketPreview}
+      >
+        <TicketPreview />
+      </Modal>
     </>
   );
 }

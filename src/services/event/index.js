@@ -176,14 +176,35 @@ async function update(data, progress) {
   progress = typeof progress === "function" ? progress : () => {};
 
   //upload images (if any)
-  const _seed = randomNumber(0.85, 0.95);
+  const _seed = randomNumber(0.9, 0.95);
+  data.images = Array.isArray(data.images) ? data.images : [];
+  data.sponsorImages = Array.isArray(data.sponsorImages)
+    ? data.sponsorImages
+    : [];
+  data.logoImage = Array.isArray(data.logoImage) ? data.logoImage : [];
+
+  const imagesToUpload = data.images?.filter((img) => img instanceof File);
+  const sponsorImagesToUpload = data.sponsorImages?.filter(
+    (img) => img instanceof File
+  );
+  const logoImageToUpload = data.logoImage?.filter(
+    (img) => img instanceof File
+  );
+
+  const totalImages =
+    imagesToUpload.length +
+    sponsorImagesToUpload.length +
+    logoImageToUpload.length;
+  let currProgress = 0;
+
   const images = await Storage.upload(
     {
       uploadPath: `/EventImages/${data.eventId}/`,
-      files: data.images.filter((img) => img instanceof File),
+      files: imagesToUpload,
     },
-    (v) => progress(v * _seed)
+    (v) => progress(((v * imagesToUpload.length) / totalImages) * _seed)
   );
+  currProgress += ((100 * imagesToUpload.length) / totalImages) * _seed;
   for (const img of data.images) {
     if (img instanceof File) continue;
     images.push(img.src);
@@ -193,10 +214,15 @@ async function update(data, progress) {
   const sponsorImages = await Storage.upload(
     {
       uploadPath: `/EventImages/${data.eventId}/sponsors/`,
-      files: data.sponsorImages.filter((img) => img instanceof File),
+      files: sponsorImagesToUpload,
     },
-    (v) => progress(v * _seed)
+    (v) =>
+      progress(
+        currProgress +
+          ((v * sponsorImagesToUpload.length) / totalImages) * _seed
+      )
   );
+  currProgress += ((100 * sponsorImagesToUpload.length) / totalImages) * _seed;
   for (const img of data.sponsorImages) {
     if (img instanceof File) continue;
     sponsorImages.push(img.src);
@@ -206,15 +232,19 @@ async function update(data, progress) {
   const logoImage = await Storage.upload(
     {
       uploadPath: `/EventImages/${data.eventId}/logo/`,
-      files: data.logoImage.filter((img) => img instanceof File),
+      files: logoImageToUpload,
     },
-    (v) => progress(v * _seed)
+    (v) =>
+      progress(
+        currProgress + ((v * logoImageToUpload.length) / totalImages) * _seed
+      )
   );
+  currProgress = _seed * 100;
   for (const img of data.logoImage) {
     if (img instanceof File) continue;
     logoImage.push(img.src);
   }
-  data.logoImage = logoImage?.length ? logoImage[0] : data.logoImage;
+  data.logoImage = logoImage?.length ? logoImage[0] : null;
 
   //update document in DB
   const newData = get_new_event_doc(data);

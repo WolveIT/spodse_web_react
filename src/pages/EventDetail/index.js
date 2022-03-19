@@ -23,7 +23,6 @@ import TagsList from "../../components/TagsList";
 import ImagePicker from "../../components/ImagePicker";
 import PeopleTabs from "./peopleTabs";
 import { transformDates } from "../../utils";
-import { colors } from "../Dashboard";
 import styles from "./index.module.scss";
 import LazyList from "../../components/LazyList";
 

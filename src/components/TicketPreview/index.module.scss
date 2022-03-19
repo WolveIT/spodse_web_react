@@ -1,0 +1,60 @@
+.container {
+  width: 316px;
+  margin: 0 0.5rem;
+  padding: 2.5rem 0 1.75rem 0;
+  background-color: #fff;
+  border-radius: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid #b8b8b8;
+  font-family: Nunito Sans, sans-serif;
+  transform: scale(0.9);
+
+  h3,
+  p {
+    margin: 0;
+  }
+
+  > h3 {
+    font-weight: 800;
+    font-size: 1.375rem;
+    margin-bottom: -4px;
+  }
+
+  p {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .qrcode {
+    width: 70%;
+    margin: 1.25rem 0 1.75rem 0;
+  }
+
+  .perks_list {
+    width: 100%;
+    margin-bottom: 1.25rem;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .perk_tag {
+    margin-top: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    font-weight: 600;
+    background-color: #f30066;
+    border-radius: 999px;
+    color: #fff;
+    margin-right: 0.25rem;
+    white-space: nowrap;
+  }
+  .perk_tag:last-of-type {
+    margin-right: 0;
+  }
+}
+
+.sponsor_image {
+  height: 72px;
+}
