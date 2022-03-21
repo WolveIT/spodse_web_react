@@ -1,6 +1,6 @@
 import { useHistory, useLocation } from "react-router-dom";
 
-function getUpdateQuery(history) {
+function getUpdateQuery(history, method) {
   const { location } = history;
   return (queryObj) => {
     const query = new URLSearchParams(location.search);
@@ -8,15 +8,18 @@ function getUpdateQuery(history) {
       if (query.has(key)) query.delete(key);
       if (queryObj[key] !== undefined) query.append(key, queryObj[key]);
     });
-    history.push({
+    history[method]({
       search: "?" + query.toString(),
     });
   };
 }
 
-export function useQuery() {
+export function useQuery(method = "push") {
   const history = useHistory();
   const location = useLocation();
 
-  return [new URLSearchParams(location.search), getUpdateQuery(history)];
+  return [
+    new URLSearchParams(location.search),
+    getUpdateQuery(history, method),
+  ];
 }

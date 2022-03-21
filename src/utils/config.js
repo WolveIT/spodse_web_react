@@ -1,3 +1,4 @@
+import React from "react";
 import {
   CalendarOutlined,
   DashboardOutlined,
@@ -5,6 +6,7 @@ import {
   SettingOutlined,
   UnorderedListOutlined,
 } from "@ant-design/icons";
+import { Redirect } from "react-router-dom";
 import RouteCustomWrapper from "../components/RouteCustomWrapper";
 
 export const authService = "firebase"; //possible values: 'firebase', 'mock'
@@ -82,6 +84,20 @@ export const routes = [
     authType: "only-authenticated",
     component: require("pages/Settings").default,
     menuItem: true,
+  },
+  {
+    route: {
+      path: "/invitation",
+    },
+    component: () => <Redirect to="/download-app" />,
+  },
+  {
+    route: {
+      path: "/download-app",
+      exact: true,
+    },
+    layoutType: "auth",
+    component: require("pages/DownloadApp").default,
   },
   {
     route: {

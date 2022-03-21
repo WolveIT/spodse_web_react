@@ -1,5 +1,5 @@
 import { List, Skeleton } from "antd";
-import throttle from "lodash.throttle";
+import debounce from "lodash.debounce";
 import React, { useCallback } from "react";
 import PerfectScrollBar from "react-perfect-scrollbar";
 import Empty from "../Empty";
@@ -14,26 +14,30 @@ export default function LazyList({
   skeletonProps,
   skeletonEntriesCount = 4,
   endReachedPercent = 80,
-  throttling = 300,
+  debouncing = 800,
   bottomPadding = 150,
   containerStyle,
   emptyContent = <Empty />,
   ...props
 }) {
+  const _onEndReached = useCallback(
+    debounce(onEndReached || (() => {}), debouncing, {
+      leading: true,
+      trailing: false,
+    }),
+    [onEndReached, debouncing]
+  );
+
   const onScrollDown = useCallback(
-    throttle((e) => {
+    (e) => {
       const clientHeight = e.clientHeight;
       const currentScroll = e.scrollTop;
       const maxScroll = e.scrollHeight - clientHeight;
       const currentPercent = (currentScroll / maxScroll) * 100;
 
-      if (
-        currentPercent > endReachedPercent &&
-        typeof onEndReached === "function"
-      )
-        onEndReached(currentPercent);
-    }, throttling),
-    []
+      if (currentPercent > endReachedPercent) _onEndReached(currentPercent);
+    },
+    [endReachedPercent, _onEndReached]
   );
 
   return (

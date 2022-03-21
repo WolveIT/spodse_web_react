@@ -21,6 +21,16 @@ export const randHashString = (len) => {
   });
 };
 
+export const randString = (len) =>
+  window
+    .btoa(
+      Array.from(window.crypto.getRandomValues(new Uint8Array(len * 2)))
+        .map((b) => String.fromCharCode(b))
+        .join("")
+    )
+    .replace(/[+/]/g, "")
+    .substring(0, len);
+
 export const randomNumber = (min, max) => min + Math.random() * (max - min);
 
 export const randomInt = (min, max) =>

@@ -351,91 +351,101 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData }) {
         )}
 
         {form.getFieldValue("ticketAnswer") && (
-          <Form.List name="perks">
-            {(fields, { add, remove }) => (
-              <>
-                {fields.map(({ field, name, fieldKey, ...rest }) => (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      width: "65%",
-                      marginBottom: 12,
-                    }}
-                  >
-                    <Form.Item
-                      {...rest}
-                      name={[name, "title"]}
-                      fieldKey={[fieldKey, "title"]}
-                      noStyle
+          <>
+            <Form.List name="perks">
+              {(fields, { add, remove }) => (
+                <>
+                  {fields.map(({ field, name, fieldKey, ...rest }) => (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        width: "65%",
+                        marginBottom: 12,
+                      }}
                     >
-                      <Input placeholder="Enter Coupon Title" />
-                    </Form.Item>
-                    <Form.Item
-                      {...rest}
-                      name={[name, "qty"]}
-                      fieldKey={[fieldKey, "qty"]}
-                      noStyle
+                      <Form.Item
+                        {...rest}
+                        name={[name, "title"]}
+                        fieldKey={[fieldKey, "title"]}
+                        noStyle
+                      >
+                        <Input placeholder="Enter Coupon Title" />
+                      </Form.Item>
+                      <Form.Item
+                        {...rest}
+                        name={[name, "qty"]}
+                        fieldKey={[fieldKey, "qty"]}
+                        noStyle
+                      >
+                        <InputNumber
+                          style={{ width: 140 }}
+                          placeholder="Quantity"
+                          min={1}
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        {...rest}
+                        name={[name, "qtyType"]}
+                        fieldKey={[fieldKey, "qtyType"]}
+                        noStyle
+                        initialValue="p"
+                      >
+                        <Select defaultValue="p" style={{ minWidth: 108 }}>
+                          <Select.Option value="p">Per Person</Select.Option>
+                          <Select.Option value="e">Per Event</Select.Option>
+                        </Select>
+                      </Form.Item>
+                      <Hover hoverStyle={{ color: "#333" }}>
+                        <MinusCircleOutlined
+                          style={{
+                            marginLeft: 10,
+                            fontSize: 20,
+                            color: "#3337",
+                            transition: "color 0.4s",
+                          }}
+                          onClick={() => remove(name)}
+                        />
+                      </Hover>
+                    </div>
+                  ))}
+                  <Form.Item>
+                    <Button
+                      type="dashed"
+                      onClick={add}
+                      style={{ width: "calc(65% - 30px)" }}
+                      icon={<PlusOutlined />}
                     >
-                      <InputNumber
-                        style={{ width: 140 }}
-                        placeholder="Quantity"
-                        min={1}
-                      />
-                    </Form.Item>
-                    <Form.Item
-                      {...rest}
-                      name={[name, "qtyType"]}
-                      fieldKey={[fieldKey, "qtyType"]}
-                      noStyle
-                      initialValue="p"
-                    >
-                      <Select defaultValue="p" style={{ minWidth: 108 }}>
-                        <Select.Option value="p">Per Person</Select.Option>
-                        <Select.Option value="e">Per Event</Select.Option>
-                      </Select>
-                    </Form.Item>
-                    <Hover hoverStyle={{ color: "#333" }}>
-                      <MinusCircleOutlined
-                        style={{
-                          marginLeft: 10,
-                          fontSize: 20,
-                          color: "#3337",
-                          transition: "color 0.4s",
-                        }}
-                        onClick={() => remove(name)}
-                      />
-                    </Hover>
-                  </div>
-                ))}
-                <Form.Item>
-                  <Button
-                    type="dashed"
-                    onClick={add}
-                    style={{ width: "calc(65% - 30px)" }}
-                    icon={<PlusOutlined />}
-                  >
-                    Add Coupon
-                    <Tooltip
-                      title={
-                        <span>
-                          You can add coupons/perks such as drinks, snacks,
-                          wrist bands etc. on top of tickets for event
-                          attendees. <br />
-                          Tickets validators will be able to scan QR code and
-                          validate an attendee's coupon(s) using the mobile app.
-                        </span>
-                      }
-                    >
-                      <InfoCircleOutlined
-                        style={{ float: "right", marginTop: 4 }}
-                      />
-                    </Tooltip>
-                  </Button>
-                </Form.Item>
-              </>
-            )}
-          </Form.List>
+                      Add Coupon
+                      <Tooltip
+                        title={
+                          <span>
+                            You can add coupons/perks such as drinks, snacks,
+                            wrist bands etc. on top of tickets for event
+                            attendees. <br />
+                            Tickets validators will be able to scan QR code and
+                            validate an attendee's coupon(s) using the mobile
+                            app.
+                          </span>
+                        }
+                      >
+                        <InfoCircleOutlined
+                          style={{ float: "right", marginTop: 4 }}
+                        />
+                      </Tooltip>
+                    </Button>
+                  </Form.Item>
+                </>
+              )}
+            </Form.List>
+            <Form.Item name="ticketPrice" label="Ticket Price (NOK)">
+              <InputNumber
+                min={0}
+                style={{ width: 230 }}
+                placeholder="Enter Price"
+              />
+            </Form.Item>
+          </>
         )}
 
         <Divider />

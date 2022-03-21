@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { connect } from "dva";
 import { useParams } from "react-router-dom";
 import EventActions from "../MyEvents/Actions";
@@ -6,12 +6,16 @@ import PageSpinner from "../../components/Spinner/PageSpinner";
 import { listenEvent, unsubEvent } from "../../models/event";
 import Center from "../../components/Center";
 import {
+  Button,
   Card,
   Collapse,
   Descriptions,
   Divider,
   Empty,
+  message,
+  Modal,
   Tag,
+  Tooltip,
   Typography,
 } from "antd";
 import moment from "moment";
@@ -25,6 +29,10 @@ import PeopleTabs from "./peopleTabs";
 import { transformDates } from "../../utils";
 import styles from "./index.module.scss";
 import LazyList from "../../components/LazyList";
+import { CopyOutlined } from "@ant-design/icons";
+import Hover from "../../components/Hover";
+import TicketPreview from "../../components/TicketPreview";
+import ServerImg from "../../components/ServerImg";
 
 function Schedule({ event }) {
   const startsAt = moment(event.startsAt.toDate());
@@ -70,7 +78,7 @@ function PerksSection({ event, listHeight }) {
                   (Max: {qty} {qtyType === "p" ? "Per Person" : "Per Event"})
                 </span>
               </div>
-              <span>{event.stats?.totalPerksAvailed?.[title] || 0}</span>
+              <span>{event.stats?.totalPerksConsumed?.[title] || 0}</span>
             </div>
           );
         }}
@@ -81,6 +89,7 @@ function PerksSection({ event, listHeight }) {
 
 function EventDetail({ event, listenEvent, unsubEvent }) {
   const { eventId } = useParams();
+  const [ticketPreview, setTicketPreview] = useState(false);
 
   //add listener to the current event
   useEffect(() => {
@@ -108,15 +117,40 @@ function EventDetail({ event, listenEvent, unsubEvent }) {
     <Card
       style={{ marginBottom: 40 }}
       title={
-        <Typography.Title style={{ fontSize: 20, marginBottom: 0 }}>
-          {event.title}
-        </Typography.Title>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          {event.logoImage?.length && (
+            <div style={{ marginRight: "0.75rem" }}>
+              <ServerImg
+                src={event.logoImage}
+                defaultWidth={32}
+                style={{ height: 32, borderRadius: 6 }}
+              />
+            </div>
+          )}
+          <Typography.Title style={{ fontSize: 22, marginBottom: 0 }}>
+            {event.title}
+          </Typography.Title>
+        </div>
       }
       extra={<EventActions showView={false} event={event} />}
     >
       <Descriptions>
         <Descriptions.Item label={<Label>Event Id</Label>}>
           {event.id}
+          {event.ticketAnswer && (
+            <Button
+              style={{
+                padding: 0,
+                marginLeft: "0.25rem",
+                height: "unset",
+                fontSize: 13,
+              }}
+              onClick={() => setTicketPreview(true)}
+              type="link"
+            >
+              (preview ticket)
+            </Button>
+          )}
         </Descriptions.Item>
         <Descriptions.Item label={<Label>Schedule</Label>}>
           <Schedule event={event} />
@@ -183,7 +217,35 @@ function EventDetail({ event, listenEvent, unsubEvent }) {
             {event.ageLimit}
           </Descriptions.Item>
         ) : null}
+        {event.ticketPrice ? (
+          <Descriptions.Item label={<Label>Ticket Price</Label>}>
+            {event.ticketPrice} NOK
+          </Descriptions.Item>
+        ) : null}
       </Descriptions>
+      {event.shareableLink && (
+        <Descriptions>
+          <Descriptions.Item label={<Label>Shareable Link</Label>}>
+            {event.shareableLink}
+            <Hover
+              style={{ transition: "color 0.4s", marginLeft: 6 }}
+              hoverStyle={{ color: Theme.get() }}
+            >
+              <span>
+                <Tooltip placement="bottom" title="Click to copy">
+                  <CopyOutlined
+                    style={{ fontSize: 16 }}
+                    onClick={() => {
+                      navigator.clipboard.writeText(event.shareableLink);
+                      message.success("Copied!");
+                    }}
+                  />
+                </Tooltip>
+              </span>
+            </Hover>
+          </Descriptions.Item>
+        </Descriptions>
+      )}
 
       <Divider />
 
@@ -199,6 +261,7 @@ function EventDetail({ event, listenEvent, unsubEvent }) {
 
       {event.images?.length ? (
         <div>
+          <Divider />
           <Label style={{ marginBottom: 6, display: "inline-block" }}>
             Images:
           </Label>
@@ -208,6 +271,25 @@ function EventDetail({ event, listenEvent, unsubEvent }) {
             value={event.images.map((img) => ({ src: img, type: "image/" }))}
             editable={false}
             count={event.images.length}
+          />
+        </div>
+      ) : null}
+
+      {event.sponsorImages?.length ? (
+        <div>
+          <Divider />
+          <Label style={{ marginBottom: 6, display: "inline-block" }}>
+            Sponsor Images:
+          </Label>
+          <ImagePicker
+            width={180}
+            height={140}
+            value={event.sponsorImages.map((img) => ({
+              src: img,
+              type: "image/",
+            }))}
+            editable={false}
+            count={event.sponsorImages.length}
           />
         </div>
       ) : null}
@@ -230,6 +312,17 @@ function EventDetail({ event, listenEvent, unsubEvent }) {
         </Label>
         <PeopleTabs event={event} listHeight={375} />
       </div>
+
+      <Modal
+        title="Ticket Preview"
+        destroyOnClose={true}
+        width="fit-content"
+        footer={null}
+        onCancel={() => setTicketPreview(false)}
+        visible={ticketPreview}
+      >
+        <TicketPreview event={event} />
+      </Modal>
     </Card>
   );
 }

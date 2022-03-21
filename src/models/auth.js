@@ -88,7 +88,7 @@ export default {
         if (profilePicture) {
           const [imageUrl] = yield call(Storage.upload, {
             uploadPath: `/ProfilePictures/${res.user.uid}/`,
-            files: profilePicture,
+            files: [profilePicture],
           });
           const updater = () =>
             refs.users.doc(res.user.uid).update({ profilePicture: imageUrl });

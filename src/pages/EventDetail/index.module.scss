@@ -23,3 +23,15 @@
     font-size: 16px;
   }
 }
+
+.tab_search_container {
+  position: absolute;
+  right: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+
+  .icon {
+    margin-left: 10px;
+  }
+}

@@ -4,8 +4,18 @@ import Marquee from "react-fast-marquee";
 import styles from "./index.module.scss";
 import qrcodeImg from "../../assets/images/qrcode.png";
 
-function TicketPreview() {
-  const event = useSelector(({ event }) => event.formData);
+function TicketPreview({ event }) {
+  event = useSelector(({ event: e }) => event || e.formData);
+
+  if (!Array.isArray(event.perks) && Object.keys(event.perks || {}).length) {
+    event = {
+      ...event,
+      perks: Object.entries(event.perks).reduce((acc, [title, val]) => {
+        const [qtyType, qty] = val.split("-");
+        return [...acc, { title, qty, qtyType }];
+      }, []),
+    };
+  }
 
   return (
     <div className={styles.container}>
@@ -31,7 +41,11 @@ function TicketPreview() {
       {event.sponsorImages?.length ? (
         <Marquee gradient={false} speed={10} pauseOnHover>
           {event.sponsorImages.map((img) => (
-            <img className={styles.sponsor_image} key={img.src} src={img.src} />
+            <img
+              className={styles.sponsor_image}
+              key={img.src || img}
+              src={img.src || img}
+            />
           ))}
         </Marquee>
       ) : null}
