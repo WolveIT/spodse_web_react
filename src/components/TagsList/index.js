@@ -99,6 +99,7 @@ export default class TagsList extends React.Component {
                 ref={this.saveEditInputRef}
                 key={tag}
                 size="small"
+                maxLength={this.props.maxTagLength}
                 className={styles["tag_input"]}
                 value={editInputValue}
                 onChange={this.handleEditInputChange}
@@ -148,6 +149,7 @@ export default class TagsList extends React.Component {
                 ref={this.saveInputRef}
                 type="text"
                 size="small"
+                maxLength={this.props.maxTagLength}
                 className={styles["tag_input"]}
                 value={inputValue}
                 onChange={this.handleInputChange}

@@ -12,6 +12,8 @@ import {
   Form,
   InputNumber,
   message,
+  Spin,
+  Button,
 } from "antd";
 import LazyList from "../../components/LazyList";
 import AlertPopup from "../../components/AlertPopup";
@@ -24,7 +26,7 @@ import {
   InfoCircleOutlined,
   PieChartOutlined,
   RightOutlined,
-  EditOutlined,
+  ReloadOutlined,
   CheckCircleFilled,
 } from "@ant-design/icons";
 import ServerImg from "../../components/ServerImg";
@@ -36,12 +38,19 @@ import {
   fetchInvited,
   fetchValidators,
   inviteUsers,
+  resendInviteAll,
 } from "../../models/event";
 import UserSearch from "./userSearch";
 import { useQuery } from "../../hooks/useQuery";
 import Event from "../../services/event";
 import TabSearch from "./tabSearch";
 import PerksInfo from "./perksInfo";
+import { globalErrorHandler } from "../../utils/errorHandler";
+
+let __invitationMsg__ = "";
+function getInvitationMsg() {
+  return __invitationMsg__;
+}
 
 export function FieldValue({ field, value }) {
   if (!value) return null;
@@ -55,10 +64,13 @@ export function FieldValue({ field, value }) {
   );
 }
 
-function InvitationMessageBox({ value, onChange }) {
+function InvitationMessageBox({ value, onChange, event }) {
+  const loading = useSelector((state) => state.event.loading.resendInviteAll);
+  const dispatch = useDispatch();
+
   return (
     <Collapse
-      style={{ marginLeft: -16, marginRight: -16, marginBottom: -12 }}
+      style={{ marginLeft: -16, marginRight: -16, marginBottom: -16 }}
       expandIcon={({ isActive }) => (
         <RightOutlined
           style={{ fontSize: 9, color: Theme.get() }}
@@ -70,17 +82,24 @@ function InvitationMessageBox({ value, onChange }) {
     >
       <Collapse.Panel
         header={
-          <span
-            style={{
-              fontSize: 12,
-              position: "relative",
-              left: -6,
-              top: -1,
-              color: Theme.get(),
-            }}
-          >
-            Customize Invitation Message
-          </span>
+          <div style={{ position: "relative", left: -6, top: -1 }}>
+            <span style={{ fontSize: 12, color: Theme.get() }}>
+              Customize Invitation Message
+            </span>
+            <Button
+              onClick={(e) => {
+                dispatch(
+                  resendInviteAll({ message: value, eventId: event.id })
+                );
+                e.stopPropagation();
+              }}
+              loading={loading}
+              style={{ padding: 0, position: "absolute", right: -6 }}
+              type="link"
+            >
+              Resend All Invitations
+            </Button>
+          </div>
         }
         key="1"
       >
@@ -154,8 +173,12 @@ function InviteUserSearch({ event }) {
   );
 
   const [msg, setMsg] = useState(
-    `Hi {{inviteeDetails.displayName}}!\nYou've been invited by ${inviterName} to join their event <strong>${event.title}</strong>.\n\nYou should have a mobile device to accept this invitation.\n\nClick the button below to join the event.`
+    `Hi {{inviteeDetails.displayName}}.\nYou have been invited to join <strong>${event.title}</strong>.\nYou should have a mobile device to accept this invitation.\nClick here on your mobile phone to join event.`
   );
+
+  useEffect(() => {
+    __invitationMsg__ = msg;
+  }, [msg]);
 
   const [modal, setModal] = useState(false);
   const [form] = Form.useForm();
@@ -201,7 +224,11 @@ function InviteUserSearch({ event }) {
         submitText="Invite"
         dataKey="email"
       />
-      <InvitationMessageBox value={msg} onChange={onMessageChange} />
+      <InvitationMessageBox
+        event={event}
+        value={msg}
+        onChange={onMessageChange}
+      />
       <Modal
         title="Select Coupons"
         visible={!!modal}
@@ -264,11 +291,32 @@ function ValidatorsUserSearch({ event }) {
   );
 }
 
+function ResendInvitation({ onClick }) {
+  const [loading, setLoading] = useState(false);
+
+  const handleClick = () => {
+    setLoading(true);
+    Promise.resolve(onClick?.())
+      .catch(globalErrorHandler)
+      .then(() => {
+        message.success("Event invitation has been resnt!");
+      })
+      .finally(() => setLoading(false));
+  };
+
+  return loading ? (
+    <Spin size="small" />
+  ) : (
+    <ReloadOutlined onClick={handleClick} />
+  );
+}
+
 export function UserCard({
   profilePicture,
   displayName,
   email,
   date,
+  onResendInvite,
   status,
   onDelete,
   onSuccessDelete,
@@ -298,16 +346,29 @@ export function UserCard({
   }, [invitationLink]);
 
   const actions = [];
+  if (onResendInvite && status === "pending") {
+    actions.push(
+      <Tooltip placement="bottom" title="Resend Invitation">
+        <span>
+          <ResendInvitation onClick={onResendInvite} />
+        </span>
+      </Tooltip>
+    );
+  }
+
   if (status)
     actions.push(
       <Tooltip placement="bottom" title={capitalize(status)}>
         {status === "accepted" ? (
           <CheckCircleFilled style={{ color: "#42ba96", fontSize: 15 }} />
-        ) : (
+        ) : status === "pending" ? (
           <CustomIcon type="icon-waiting" style={{ fontSize: 16 }} />
+        ) : (
+          <CustomIcon type="icon-not-available" style={{ fontSize: 15 }} />
         )}
       </Tooltip>
     );
+
   if (validationStats)
     actions.push(
       <Tooltip placement="bottom" title="Stats">
@@ -333,6 +394,7 @@ export function UserCard({
         </Popover>
       </Tooltip>
     );
+
   if (ticketInfo)
     actions.push(
       <Tooltip placement="bottom" title="Ticket Info">
@@ -372,6 +434,7 @@ export function UserCard({
         </Popover>
       </Tooltip>
     );
+
   if (perks)
     actions.push(
       <Tooltip title="Coupons" placement="bottom">
@@ -380,6 +443,7 @@ export function UserCard({
         </span>
       </Tooltip>
     );
+
   if (invitationLink) {
     actions.push(
       <Tooltip placement="bottom" title="Copy Invitation Link">
@@ -387,6 +451,7 @@ export function UserCard({
       </Tooltip>
     );
   }
+
   if (onDelete?.method)
     actions.push(
       <Tooltip placement="bottom" title="Delete">
@@ -431,7 +496,7 @@ export function UserCard({
 }
 
 export default function PeopleTabs({ event, listHeight = 375 }) {
-  const [query, updateQuery] = useQuery();
+  const [query, updateQuery] = useQuery("replace");
   const peopleTab = query.get("peopleTab") || "going";
   const searchFunc = useRef();
   const dispatch = useDispatch();
@@ -614,6 +679,13 @@ export default function PeopleTabs({ event, listHeight = 375 }) {
                       });
                       refreshComponent(Date.now());
                     }))
+                }
+                onResendInvite={() =>
+                  Event.resend_invite({
+                    invitationId: item.id,
+                    eventId: event.id,
+                    message: getInvitationMsg(),
+                  })
                 }
                 onDelete={{
                   method: Event.remove_invited,

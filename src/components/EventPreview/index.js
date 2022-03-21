@@ -134,7 +134,7 @@ export default function EventPreview({
     >
       <EventCard data={data} visible={visible} bottom={bottom} />
       <Switch
-        style={{ marginTop: 16, float: "right" }}
+        style={{ marginTop: 16, float: "right", pointerEvents: "visible" }}
         checked={visible}
         onChange={setVisible}
         checkedChildren="Preview"

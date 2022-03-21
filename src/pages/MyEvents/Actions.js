@@ -56,6 +56,8 @@ function EventActions({
     [event]
   );
 
+  const ended = event.endsAt?.toDate?.() < new Date();
+
   return (
     <div style={{ display: "flex", alignItems: "center", zIndex: 99 }}>
       {showView && (
@@ -70,10 +72,22 @@ function EventActions({
       {showEdit && (
         <Hover
           element={
-            <EditOutlined style={{ fontSize: iconSize }} onClick={onEdit} />
+            <EditOutlined
+              style={{ fontSize: iconSize, color: ended && "#C6C6C6" }}
+              onClick={
+                !ended
+                  ? onEdit
+                  : (e) => {
+                      e.stopPropagation();
+                    }
+              }
+              title={ended && "Event Ended"}
+            />
           }
           style={{ marginRight: iconSize / 1.5 }}
-          hoverStyle={{ color: Theme.get(), transition: "color 0.4s" }}
+          hoverStyle={
+            !ended && { color: Theme.get(), transition: "color 0.4s" }
+          }
         />
       )}
       {showDelete && (

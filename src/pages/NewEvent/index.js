@@ -5,6 +5,7 @@ import {
   Input,
   InputNumber,
   message,
+  Modal,
   Progress,
   Select,
   Switch,
@@ -32,6 +33,7 @@ import {
 } from "@ant-design/icons";
 import Hover from "../../components/Hover";
 import MuiDateTimePicker from "../../components/MuiDateTimePicker";
+import TicketPreview from "../../components/TicketPreview";
 
 const genres = ["Food & Drink", "Festival", "Event", "Sports"];
 
@@ -40,7 +42,7 @@ function EventPreviewCard() {
   return <EventPreview data={event} />;
 }
 
-function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endDate }) {
+function NewEvent({ event, fetchEvent, fetchLoading, setFormData }) {
   const eventId = useParams().eventId;
   const pathname = useLocation().pathname;
   const editMode = pathname.slice(pathname.lastIndexOf("/") + 1) === "edit";
@@ -56,15 +58,25 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endDate }) {
   const [minDate, setMinDate] = useState(new Date());
   const [progress, setProgress] = useState();
   const [showDeadline, setShowDeadline] = useState(false);
+  const [ticketPreview, setTicketPreview] = useState(false);
 
   useEffect(() => {
-    if (editMode && event) {
+    if (editMode && event && !fetchLoading) {
       form.setFieldsValue({
         ...event,
         startDate: event.startsAt.toDate(),
         endDate: event.endsAt.toDate(),
         closesAt: event.closesAt.toDate(),
         images: event.images.map((img) => ({ src: img, type: "image/" })),
+        sponsorImages:
+          event.sponsorImages?.map((img) => ({
+            src: img,
+            type: "image/",
+          })) || [],
+        logoImage:
+          typeof event.logoImage === "string"
+            ? [{ src: event.logoImage, type: "image/" }]
+            : null,
         perks: Object.entries(event.perks).map(([title, qty]) => {
           const split = qty.split("-");
           return {
@@ -75,16 +87,11 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endDate }) {
         }),
       });
       setMinDate(event.startsAt.toDate());
-      setShowDeadline(event.endsAt.toDate() !== event.closesAt.toDate());
+      setShowDeadline(
+        event.endsAt.toDate().getTime() !== event.closesAt.toDate().getTime()
+      );
     }
-  }, [event]);
-
-  // useEffect(() => {
-  //   const closesAt = form.getFieldValue("closesAt");
-  //   if (endDate && !closesAt) {
-  //     form.setFieldsValue({ closesAt: endDate });
-  //   }
-  // }, [endDate]);
+  }, [event, fetchLoading]);
 
   const onSubmit = useCallback(
     (data) => {
@@ -153,6 +160,10 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endDate }) {
           rules={[{ required: true }]}
         >
           <Input placeholder="Enter event's title" />
+        </Form.Item>
+
+        <Form.Item name="logoImage" label="Logo">
+          <ImagePicker count={1} />
         </Form.Item>
 
         <Form.Item
@@ -291,29 +302,40 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endDate }) {
           />
         </Form.Item>
 
-        <Form.Item
-          rules={[{ required: true }]}
-          initialValue={false}
-          name="ticketAnswer"
-          label="Ticketeting"
-        >
-          <Select
-            disabled={editMode}
-            onChange={setTicketAnswer}
-            style={{ width: 230 }}
-            defaultValue={false}
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <Form.Item
+            rules={[{ required: true }]}
+            initialValue={false}
+            name="ticketAnswer"
+            label="Ticketing"
           >
-            <Select.Option key="no-ticket" value={false}>
-              No Tickets
-            </Select.Option>
-            <Select.Option key="internal" value={"internal"}>
-              Autogenerate Tickets
-            </Select.Option>
-            <Select.Option key="external" value={"external"}>
-              Upload Tickets File
-            </Select.Option>
-          </Select>
-        </Form.Item>
+            <Select
+              disabled={editMode}
+              onChange={setTicketAnswer}
+              style={{ width: 230 }}
+              defaultValue={false}
+            >
+              <Select.Option key="no-ticket" value={false}>
+                No Tickets
+              </Select.Option>
+              <Select.Option key="internal" value={"internal"}>
+                Autogenerate Tickets
+              </Select.Option>
+              <Select.Option key="external" value={"external"}>
+                Upload Tickets File
+              </Select.Option>
+            </Select>
+          </Form.Item>
+          {form.getFieldValue("ticketAnswer") && (
+            <Button
+              style={{ marginTop: 5 }}
+              onClick={() => setTicketPreview(true)}
+              type="link"
+            >
+              preview ticket
+            </Button>
+          )}
+        </div>
 
         {ticketAnswer === "external" && (
           <Form.Item
@@ -329,91 +351,101 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endDate }) {
         )}
 
         {form.getFieldValue("ticketAnswer") && (
-          <Form.List name="perks">
-            {(fields, { add, remove }) => (
-              <>
-                {fields.map(({ field, name, fieldKey, ...rest }) => (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      width: "65%",
-                      marginBottom: 12,
-                    }}
-                  >
-                    <Form.Item
-                      {...rest}
-                      name={[name, "title"]}
-                      fieldKey={[fieldKey, "title"]}
-                      noStyle
+          <>
+            <Form.List name="perks">
+              {(fields, { add, remove }) => (
+                <>
+                  {fields.map(({ field, name, fieldKey, ...rest }) => (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        width: "65%",
+                        marginBottom: 12,
+                      }}
                     >
-                      <Input placeholder="Enter Coupon Title" />
-                    </Form.Item>
-                    <Form.Item
-                      {...rest}
-                      name={[name, "qty"]}
-                      fieldKey={[fieldKey, "qty"]}
-                      noStyle
+                      <Form.Item
+                        {...rest}
+                        name={[name, "title"]}
+                        fieldKey={[fieldKey, "title"]}
+                        noStyle
+                      >
+                        <Input placeholder="Enter Coupon Title" />
+                      </Form.Item>
+                      <Form.Item
+                        {...rest}
+                        name={[name, "qty"]}
+                        fieldKey={[fieldKey, "qty"]}
+                        noStyle
+                      >
+                        <InputNumber
+                          style={{ width: 140 }}
+                          placeholder="Quantity"
+                          min={1}
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        {...rest}
+                        name={[name, "qtyType"]}
+                        fieldKey={[fieldKey, "qtyType"]}
+                        noStyle
+                        initialValue="p"
+                      >
+                        <Select defaultValue="p" style={{ minWidth: 108 }}>
+                          <Select.Option value="p">Per Person</Select.Option>
+                          <Select.Option value="e">Per Event</Select.Option>
+                        </Select>
+                      </Form.Item>
+                      <Hover hoverStyle={{ color: "#333" }}>
+                        <MinusCircleOutlined
+                          style={{
+                            marginLeft: 10,
+                            fontSize: 20,
+                            color: "#3337",
+                            transition: "color 0.4s",
+                          }}
+                          onClick={() => remove(name)}
+                        />
+                      </Hover>
+                    </div>
+                  ))}
+                  <Form.Item>
+                    <Button
+                      type="dashed"
+                      onClick={add}
+                      style={{ width: "calc(65% - 30px)" }}
+                      icon={<PlusOutlined />}
                     >
-                      <InputNumber
-                        style={{ width: 140 }}
-                        placeholder="Quantity"
-                        min={1}
-                      />
-                    </Form.Item>
-                    <Form.Item
-                      {...rest}
-                      name={[name, "qtyType"]}
-                      fieldKey={[fieldKey, "qtyType"]}
-                      noStyle
-                      initialValue="p"
-                    >
-                      <Select defaultValue="p" style={{ minWidth: 108 }}>
-                        <Select.Option value="p">Per Person</Select.Option>
-                        <Select.Option value="e">Per Event</Select.Option>
-                      </Select>
-                    </Form.Item>
-                    <Hover hoverStyle={{ color: "#333" }}>
-                      <MinusCircleOutlined
-                        style={{
-                          marginLeft: 10,
-                          fontSize: 20,
-                          color: "#3337",
-                          transition: "color 0.4s",
-                        }}
-                        onClick={() => remove(name)}
-                      />
-                    </Hover>
-                  </div>
-                ))}
-                <Form.Item>
-                  <Button
-                    type="dashed"
-                    onClick={add}
-                    style={{ width: "calc(65% - 30px)" }}
-                    icon={<PlusOutlined />}
-                  >
-                    Add Coupon
-                    <Tooltip
-                      title={
-                        <span>
-                          You can add coupons/perks such as drinks, snacks,
-                          wrist bands etc. on top of tickets for event
-                          attendees. <br />
-                          Tickets validators will be able to scan QR code and
-                          validate an attendee's coupon(s) using the mobile app.
-                        </span>
-                      }
-                    >
-                      <InfoCircleOutlined
-                        style={{ float: "right", marginTop: 4 }}
-                      />
-                    </Tooltip>
-                  </Button>
-                </Form.Item>
-              </>
-            )}
-          </Form.List>
+                      Add Coupon
+                      <Tooltip
+                        title={
+                          <span>
+                            You can add coupons/perks such as drinks, snacks,
+                            wrist bands etc. on top of tickets for event
+                            attendees. <br />
+                            Tickets validators will be able to scan QR code and
+                            validate an attendee's coupon(s) using the mobile
+                            app.
+                          </span>
+                        }
+                      >
+                        <InfoCircleOutlined
+                          style={{ float: "right", marginTop: 4 }}
+                        />
+                      </Tooltip>
+                    </Button>
+                  </Form.Item>
+                </>
+              )}
+            </Form.List>
+            <Form.Item name="ticketPrice" label="Ticket Price (NOK)">
+              <InputNumber
+                min={0}
+                style={{ width: 230 }}
+                placeholder="Enter Price"
+              />
+            </Form.Item>
+          </>
         )}
 
         <Divider />
@@ -423,7 +455,7 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endDate }) {
         </Form.Item>
 
         <Form.Item name="tags" label="Tags">
-          <TagsList />
+          <TagsList maxTagLength={30} />
         </Form.Item>
 
         <Divider />
@@ -433,6 +465,12 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endDate }) {
         </Form.Item>
 
         <Divider />
+
+        {form.getFieldValue("ticketAnswer") && (
+          <Form.Item name="sponsorImages" label="Sponsor Images">
+            <ImagePicker count={4} />
+          </Form.Item>
+        )}
 
         <Form.Item>
           <Button
@@ -454,6 +492,16 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData, endDate }) {
         </Form.Item>
       </Form>
       <EventPreviewCard />
+      <Modal
+        title="Ticket Preview"
+        destroyOnClose={true}
+        width="fit-content"
+        footer={null}
+        onCancel={() => setTicketPreview(false)}
+        visible={ticketPreview}
+      >
+        <TicketPreview />
+      </Modal>
     </>
   );
 }
@@ -462,7 +510,6 @@ export default connect(
   ({ event }) => ({
     event: event.current,
     fetchLoading: event.loading.fetchCurrent,
-    endDate: event.formData.endDate,
   }),
   { fetchEvent, setFormData }
 )(NewEvent);

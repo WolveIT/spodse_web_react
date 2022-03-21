@@ -86,6 +86,12 @@ export const setFormData = (data) => ({
   formData: data,
 });
 
+export const resendInviteAll = ({ eventId, message }) => ({
+  type: `${namespace}/resendInviteAll`,
+  eventId,
+  message,
+});
+
 export const inviteUsers = (
   eventId,
   emails,
@@ -223,6 +229,7 @@ export default {
       searchResults: false,
       inviteUsers: false,
       addValidators: false,
+      resendInviteAll: false,
       delete: false,
     },
   },
@@ -278,11 +285,11 @@ export default {
       try {
         yield put(startLoading("fetchCurrent"));
 
-        const [event, tickets] = yield all[
-          (call(Firestore.get, refs.events.doc(eventId)),
-          call(Firestore.get, refs.eventTicketsList(eventId)))
-        ];
-        yield put({ type: "setState", current: event, tickets });
+        const [event, tickets] = yield all([
+          call(Firestore.get, refs.events.doc(eventId)),
+          call(Firestore.get, refs.eventTickets(eventId)),
+        ]);
+        yield put({ type: "setState", tickets, current: event });
 
         yield put(stopLoading("fetchCurrent"));
       } catch (error) {
@@ -646,6 +653,17 @@ export default {
         yield put(stopLoading("searchResults"));
       } catch (error) {
         localErrorHandler({ namespace, error, stopLoading: "searchResults" });
+      }
+    },
+
+    *resendInviteAll({ eventId, message: msg }, { put, call }) {
+      try {
+        yield put(startLoading("resendInviteAll"));
+        yield call(Event.resend_invite_all, { eventId, message: msg });
+        yield put(stopLoading("resendInviteAll"));
+        message.success("Re sent invitations to all pending invitees!");
+      } catch (error) {
+        localErrorHandler({ namespace, error, stopLoading: "resendInviteAll" });
       }
     },
 

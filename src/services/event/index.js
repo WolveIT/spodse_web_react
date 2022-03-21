@@ -38,7 +38,9 @@ function get_new_event_doc(data) {
     endsAt: data.endsAt,
     closesAt: data.closesAt || data.endsAt,
     genre: data.genre,
+    sponsorImages: data.sponsorImages || [],
     images: data.images || [],
+    logoImage: data.logoImage || null,
     location: data.location,
     maxAttendees: data.maxAttendees,
     title: data.title,
@@ -46,6 +48,7 @@ function get_new_event_doc(data) {
     isPrivate: data.isPrivate,
     tags: data.tags || [],
     ticketAnswer: data.ticketAnswer,
+    ticketPrice: data.ticketPrice || 0,
     perks: data.perks || {},
     likes: {},
     stats: {
@@ -95,11 +98,42 @@ async function create(data, progress) {
   data.eventId = eventRef.id;
 
   //upload images
-  const _seed = randomNumber(0.85, 0.95);
+  const _seed = randomNumber(0.9, 0.95);
+  const totalImages =
+    data.images.length + data.logoImage.length + data.sponsorImages.length;
+  let currProgress = 0;
+
   data.images = await Storage.upload(
     { uploadPath: `/EventImages/${data.eventId}/`, files: data.images },
-    (v) => progress(v * _seed)
+    (v) => {
+      progress(((v * data.images.length) / totalImages) * _seed);
+    }
   );
+  currProgress += 100 * (data.images.length / totalImages) * _seed;
+
+  data.sponsorImages = await Storage.upload(
+    {
+      uploadPath: `/EventImages/${data.eventId}/sponsors/`,
+      files: data.sponsorImages,
+    },
+    (v) => {
+      progress(
+        currProgress + ((v * data.sponsorImages.length) / totalImages) * _seed
+      );
+    }
+  );
+  currProgress += 100 * (data.sponsorImages.length / totalImages) * _seed;
+
+  data.logoImage = await Storage.upload(
+    { uploadPath: `/EventImages/${data.eventId}/logo/`, files: data.logoImage },
+    (v) => {
+      progress(
+        currProgress + ((v * data.logoImage.length) / totalImages) * _seed
+      );
+    }
+  );
+  if (data.logoImage?.length) data.logoImage = data.logoImage[0];
+  currProgress = _seed * 100;
 
   //generate ticket
   if (data.ticketAnswer) {
@@ -112,7 +146,7 @@ async function create(data, progress) {
       throw new Error(
         `No. of tickets should match the Attendees Limit!\nAttendees Limit: ${data.maxAttendees}, Tickets provides: ${data.tickets.length}`
       );
-    progress(_seed * 100 + randomInt(1, 5));
+    progress(currProgress + randomInt(1, 3));
   }
 
   //create event in DB
@@ -138,19 +172,75 @@ async function update(data, progress) {
   progress = typeof progress === "function" ? progress : () => {};
 
   //upload images (if any)
-  const _seed = randomNumber(0.85, 0.95);
+  const _seed = randomNumber(0.9, 0.95);
+  data.images = Array.isArray(data.images) ? data.images : [];
+  data.sponsorImages = Array.isArray(data.sponsorImages)
+    ? data.sponsorImages
+    : [];
+  data.logoImage = Array.isArray(data.logoImage) ? data.logoImage : [];
+
+  const imagesToUpload = data.images?.filter((img) => img instanceof File);
+  const sponsorImagesToUpload = data.sponsorImages?.filter(
+    (img) => img instanceof File
+  );
+  const logoImageToUpload = data.logoImage?.filter(
+    (img) => img instanceof File
+  );
+
+  const totalImages =
+    imagesToUpload.length +
+    sponsorImagesToUpload.length +
+    logoImageToUpload.length;
+  let currProgress = 0;
+
   const images = await Storage.upload(
     {
       uploadPath: `/EventImages/${data.eventId}/`,
-      files: data.images.filter((img) => img instanceof File),
+      files: imagesToUpload,
     },
-    (v) => progress(v * _seed)
+    (v) => progress(((v * imagesToUpload.length) / totalImages) * _seed)
   );
+  currProgress += ((100 * imagesToUpload.length) / totalImages) * _seed;
   for (const img of data.images) {
     if (img instanceof File) continue;
     images.push(img.src);
   }
   data.images = images;
+
+  const sponsorImages = await Storage.upload(
+    {
+      uploadPath: `/EventImages/${data.eventId}/sponsors/`,
+      files: sponsorImagesToUpload,
+    },
+    (v) =>
+      progress(
+        currProgress +
+          ((v * sponsorImagesToUpload.length) / totalImages) * _seed
+      )
+  );
+  currProgress += ((100 * sponsorImagesToUpload.length) / totalImages) * _seed;
+  for (const img of data.sponsorImages) {
+    if (img instanceof File) continue;
+    sponsorImages.push(img.src);
+  }
+  data.sponsorImages = sponsorImages;
+
+  const logoImage = await Storage.upload(
+    {
+      uploadPath: `/EventImages/${data.eventId}/logo/`,
+      files: logoImageToUpload,
+    },
+    (v) =>
+      progress(
+        currProgress + ((v * logoImageToUpload.length) / totalImages) * _seed
+      )
+  );
+  currProgress = _seed * 100;
+  for (const img of data.logoImage) {
+    if (img instanceof File) continue;
+    logoImage.push(img.src);
+  }
+  data.logoImage = logoImage?.length ? logoImage[0] : null;
 
   //update document in DB
   const newData = get_new_event_doc(data);
@@ -229,6 +319,21 @@ async function update_ticket_perks({ eventId, ticketId, perks }) {
     return refs.eventTickets(eventId).doc(ticketId).update(updates);
 }
 
+function resend_invite({ invitationId, eventId, message }) {
+  return functions().httpsCallable("eventResendInvite")({
+    invitationId,
+    eventId,
+    message,
+  });
+}
+
+function resend_invite_all({ eventId, message }) {
+  return functions().httpsCallable("eventResendInviteAll")({
+    eventId,
+    message,
+  });
+}
+
 const Event = {
   create,
   update,
@@ -239,6 +344,8 @@ const Event = {
   remove_user,
   update_invite_perks,
   update_ticket_perks,
+  resend_invite,
+  resend_invite_all,
   delete: _delete,
 };
 
