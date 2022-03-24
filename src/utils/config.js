@@ -5,6 +5,7 @@ import {
   PlusCircleOutlined,
   SettingOutlined,
   UnorderedListOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 import { Redirect } from "react-router-dom";
 import RouteCustomWrapper from "../components/RouteCustomWrapper";
@@ -26,6 +27,7 @@ export const routes = [
     authType: "only-authenticated", //authentication type, configure in Router.js file (default:'none') (inherited by sub routes)
     component: require("pages/Dashboard").default, //component to render in the designated layout's children (if no component is given, no route is created)
     menuItem: true, //should this route be showed in the nav bar as a menu item (NOT inherited by sub routes)
+    allowedRoles: null, //if allowedRoles is nullish, then this route is allowed for any role. otherwise it can be an array of role strings
   },
   {
     title: "Events",
@@ -69,6 +71,45 @@ export const routes = [
           path: ":eventId",
         },
         component: require("pages/EventDetail").default,
+        menuItem: false,
+      },
+    ],
+  },
+  {
+    title: "Users",
+    icon: UserOutlined,
+    route: {
+      path: "/users",
+    },
+    layoutType: "dashboard",
+    authType: "only-authenticated",
+    menuItem: true,
+    subRoutes: [
+      {
+        title: "New User",
+        icon: PlusCircleOutlined,
+        route: {
+          path: "new_user",
+          exact: true,
+        },
+        component: require("pages/NewUser").default,
+        menuItem: true,
+      },
+      {
+        title: "All Users",
+        icon: UnorderedListOutlined,
+        route: {
+          path: "list",
+          exact: true,
+        },
+        component: require("pages/Users").default,
+        menuItem: true,
+      },
+      {
+        route: {
+          path: ":userId/edit",
+        },
+        component: require("pages/NewUser").default,
         menuItem: false,
       },
     ],

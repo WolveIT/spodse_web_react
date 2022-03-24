@@ -9,7 +9,7 @@ function NoAccount({ loading, makeBusiness, logout, logoutLoading }) {
       <div style={{ textAlign: "center" }}>
         <h1>You don't have a business account yet!</h1>
         <Button style={{ width: 130 }} onClick={makeBusiness} loading={loading}>
-          Create Account
+          Request Access
         </Button>
         <Button style={{ width: 130 }} onClick={logout} loading={logoutLoading}>
           Logout

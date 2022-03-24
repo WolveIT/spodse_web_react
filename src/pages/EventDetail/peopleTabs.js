@@ -97,7 +97,7 @@ function InvitationMessageBox({ value, onChange, event }) {
               style={{ padding: 0, position: "absolute", right: -6 }}
               type="link"
             >
-              Resend All Invitations
+              Resend All Pending
             </Button>
           </div>
         }
@@ -346,15 +346,6 @@ export function UserCard({
   }, [invitationLink]);
 
   const actions = [];
-  if (onResendInvite && status === "pending") {
-    actions.push(
-      <Tooltip placement="bottom" title="Resend Invitation">
-        <span>
-          <ResendInvitation onClick={onResendInvite} />
-        </span>
-      </Tooltip>
-    );
-  }
 
   if (status)
     actions.push(
@@ -368,6 +359,16 @@ export function UserCard({
         )}
       </Tooltip>
     );
+
+  if (onResendInvite && status === "pending") {
+    actions.push(
+      <Tooltip placement="bottom" title="Resend Invitation">
+        <span>
+          <ResendInvitation onClick={onResendInvite} />
+        </span>
+      </Tooltip>
+    );
+  }
 
   if (validationStats)
     actions.push(

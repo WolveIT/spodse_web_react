@@ -34,6 +34,7 @@ import {
 import Hover from "../../components/Hover";
 import MuiDateTimePicker from "../../components/MuiDateTimePicker";
 import TicketPreview from "../../components/TicketPreview";
+import AlertPopup from "../../components/AlertPopup";
 
 const genres = ["Food & Drink", "Festival", "Event", "Sports"];
 
@@ -68,8 +69,13 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData }) {
         endDate: event.endsAt.toDate(),
         closesAt: event.closesAt.toDate(),
         images: event.images.map((img) => ({ src: img, type: "image/" })),
-        sponsorImages:
-          event.sponsorImages?.map((img) => ({
+        mainSponsorImage:
+          Array.isArray(event.sponsorImages) &&
+          typeof event.sponsorImages[0] === "string"
+            ? [{ src: event.sponsorImages[0], type: "image/" }]
+            : null,
+        otherSponsorImages:
+          event.sponsorImages?.slice(1).map((img) => ({
             src: img,
             type: "image/",
           })) || [],
@@ -110,6 +116,12 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData }) {
             }),
             {}
           ) || {};
+      data.sponsorImages = data.otherSponsorImages?.length
+        ? (data.mainSponsorImage?.length
+            ? data.mainSponsorImage
+            : [null]
+          ).concat(data.otherSponsorImages)
+        : data.mainSponsorImage;
       setProgress(0);
       Event[editMode ? "update" : "create"](data, setProgress)
         .then((eventId) => {
@@ -450,8 +462,32 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData }) {
 
         <Divider />
 
-        <Form.Item name="isPrivate" label="Private Event">
-          <Switch defaultChecked={editMode ? event?.isPrivate : false} />
+        <Form.Item
+          name="isPrivate"
+          label={
+            <span>
+              Private Event
+              {editMode && (
+                <InfoCircleOutlined
+                  onClick={() =>
+                    AlertPopup({
+                      title: "Info",
+                      message:
+                        "Event's public or private status can not be modified after creation. Public/Private values is final",
+                      okText: "ok",
+                      cancelButtonProps: { style: { display: "none" } },
+                    })
+                  }
+                  style={{ marginLeft: 8 }}
+                />
+              )}
+            </span>
+          }
+        >
+          <Switch
+            disabled={editMode}
+            defaultChecked={editMode ? event?.isPrivate : false}
+          />
         </Form.Item>
 
         <Form.Item name="tags" label="Tags">
@@ -467,9 +503,14 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData }) {
         <Divider />
 
         {form.getFieldValue("ticketAnswer") && (
-          <Form.Item name="sponsorImages" label="Sponsor Images">
-            <ImagePicker count={4} />
-          </Form.Item>
+          <>
+            <Form.Item name="mainSponsorImage" label="Main Sponsor Image">
+              <ImagePicker count={1} />
+            </Form.Item>
+            <Form.Item name="otherSponsorImages" label="Other Sponsor Images">
+              <ImagePicker count={3} />
+            </Form.Item>
+          </>
         )}
 
         <Form.Item>

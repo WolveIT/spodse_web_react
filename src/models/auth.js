@@ -33,8 +33,8 @@ export const signup = ({ email, password, displayName, profilePicture }) => ({
 
 export const logout = () => ({ type: `${namespace}/logout` });
 
-export const fetchIsBusiness = () => ({
-  type: `${namespace}/fetchIsBusiness`,
+export const fetchRole = () => ({
+  type: `${namespace}/fetchRole`,
 });
 
 export const makeBusiness = () => ({
@@ -49,7 +49,7 @@ export default {
   state: {
     user: undefined,
     holdSetAuthUser: false,
-    isBusiness: undefined,
+    role: undefined,
     loading: {
       login: false,
       signup: false,
@@ -110,7 +110,7 @@ export default {
       try {
         yield put(startLoading("makeBusiness"));
         yield call(Business.make_business);
-        yield put(fetchIsBusiness());
+        yield put(fetchRole());
         yield put(stopLoading("makeBusiness"));
         message.success("Business account created successfully!");
       } catch (error) {
@@ -129,15 +129,24 @@ export default {
       }
     },
 
-    *fetchIsBusiness(_, { put, call, select }) {
+    *fetchRole(_, { put, call, select }) {
       try {
-        const prev = yield select((state) => state[namespace].isBusiness);
+        const prev = yield select((state) => state[namespace].role);
         if (prev) return;
 
         const customClaims = yield call(Auth.get_claims, true);
+        let role = "normal";
+        if (customClaims?.["super-admin"] === true) {
+          role = "super-admin";
+        } else if (customClaims?.admin === true) {
+          role = "admin";
+        } else if (customClaims?.business === true) {
+          role = "business";
+        }
+
         yield put({
           type: "setState",
-          isBusiness: customClaims?.business || false,
+          role,
         });
       } catch (error) {
         localErrorHandler({ namespace, error });
@@ -150,7 +159,7 @@ export default {
       return Auth.subscribe((user) => {
         if (user) {
           //if logged in
-          dispatch(fetchIsBusiness());
+          dispatch(fetchRole());
           if (!globalState()[namespace].holdSetAuthUser) {
             console.log("Logged in");
             dispatch({ type: "setUser", user });
@@ -159,7 +168,7 @@ export default {
         } else {
           //if logged out
           console.log("Logged out");
-          dispatch({ type: "setState", user: null, isBusiness: undefined });
+          dispatch({ type: "setState", user: null, role: undefined });
         }
       });
     },

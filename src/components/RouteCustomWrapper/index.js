@@ -2,17 +2,19 @@ import { connect } from "dva";
 import React from "react";
 import { Redirect, useLocation } from "react-router-dom";
 import PageSpinner from "../Spinner/PageSpinner";
+import Role from "../../utils/userRole";
 
 const RouteCustomWrapper = connect(({ auth }) => ({
   isLoggedIn: auth.user,
-  isBusiness: auth.isBusiness,
-}))(({ isLoggedIn, isBusiness, children }) => {
+  role: auth.role,
+}))(({ isLoggedIn, role, children }) => {
   const { pathname } = useLocation();
 
-  if (isLoggedIn === undefined || (isLoggedIn && isBusiness === undefined))
+  if (isLoggedIn === undefined || (isLoggedIn && role === undefined))
     return <PageSpinner text="Loading" />;
 
-  if (isLoggedIn && !isBusiness && !pathname.startsWith("/no-account")) {
+  const isAllowed = Role.is_allowed(role);
+  if (isLoggedIn && !isAllowed && !pathname.startsWith("/no-account")) {
     return (
       <Redirect
         to={{
@@ -23,7 +25,7 @@ const RouteCustomWrapper = connect(({ auth }) => ({
   }
 
   if (
-    ((isLoggedIn && isBusiness) || !isLoggedIn) &&
+    ((isLoggedIn && isAllowed) || !isLoggedIn) &&
     pathname.startsWith("/no-account")
   ) {
     return (

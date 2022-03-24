@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { connect } from "dva";
 import { useParams } from "react-router-dom";
 import EventActions from "../MyEvents/Actions";
@@ -112,6 +112,10 @@ function EventDetail({ event, listenEvent, unsubEvent }) {
   transformDates(event);
   const now = moment();
   const regClosed = event.closesAt.isBefore(now);
+  const [mainSponsorImage, otherSponsorImages] = [
+    event.sponsorImages?.slice(0, 1)?.[0],
+    event.sponsorImages?.slice(1),
+  ];
 
   return (
     <Card
@@ -275,21 +279,42 @@ function EventDetail({ event, listenEvent, unsubEvent }) {
         </div>
       ) : null}
 
-      {event.sponsorImages?.length ? (
+      {mainSponsorImage ? (
         <div>
           <Divider />
           <Label style={{ marginBottom: 6, display: "inline-block" }}>
-            Sponsor Images:
+            Main Sponsor Image:
           </Label>
           <ImagePicker
             width={180}
             height={140}
-            value={event.sponsorImages.map((img) => ({
+            value={[
+              {
+                src: mainSponsorImage,
+                type: "image/",
+              },
+            ]}
+            editable={false}
+            count={1}
+          />
+        </div>
+      ) : null}
+
+      {otherSponsorImages?.length ? (
+        <div>
+          <Divider />
+          <Label style={{ marginBottom: 6, display: "inline-block" }}>
+            Other Sponsor Images:
+          </Label>
+          <ImagePicker
+            width={180}
+            height={140}
+            value={otherSponsorImages.map((img) => ({
               src: img,
               type: "image/",
             }))}
             editable={false}
-            count={event.sponsorImages.length}
+            count={otherSponsorImages.length}
           />
         </div>
       ) : null}

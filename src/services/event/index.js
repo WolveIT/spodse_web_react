@@ -111,10 +111,11 @@ async function create(data, progress) {
   );
   currProgress += 100 * (data.images.length / totalImages) * _seed;
 
+  const hasMainSponsor = data.sponsorImages[0] === null;
   data.sponsorImages = await Storage.upload(
     {
       uploadPath: `/EventImages/${data.eventId}/sponsors/`,
-      files: data.sponsorImages,
+      files: data.sponsorImages.filter((item) => item instanceof File),
     },
     (v) => {
       progress(
@@ -122,6 +123,8 @@ async function create(data, progress) {
       );
     }
   );
+  if (!hasMainSponsor && data.sponsorImages.length)
+    data.sponsorImages.unshift(null);
   currProgress += 100 * (data.sponsorImages.length / totalImages) * _seed;
 
   data.logoImage = await Storage.upload(
@@ -219,11 +222,13 @@ async function update(data, progress) {
       )
   );
   currProgress += ((100 * sponsorImagesToUpload.length) / totalImages) * _seed;
-  for (const img of data.sponsorImages) {
-    if (img instanceof File) continue;
-    sponsorImages.push(img.src);
+  let sponsorCount = 0;
+  for (let i = 0; i < data.sponsorImages.length; ++i) {
+    const img = data.sponsorImages[i];
+    if (img instanceof File)
+      data.sponsorImages[i] = sponsorImages[sponsorCount++];
+    else if (img?.src) data.sponsorImages[i] = img.src;
   }
-  data.sponsorImages = sponsorImages;
 
   const logoImage = await Storage.upload(
     {
