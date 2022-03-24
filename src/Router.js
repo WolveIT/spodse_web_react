@@ -19,6 +19,7 @@ import AuthLayout from "./layouts/AuthLayout";
 import DashboardLayout from "./layouts/DashboardLayout";
 import { getRoutePath } from "./utils";
 import PopoverWidth from "./components/PopoverWidth";
+import { useRole } from "./utils/userRole";
 
 const routeRenderer = (
   routes,
@@ -48,6 +49,7 @@ const routeRenderer = (
           key={prefix + i}
           layoutType={route.layoutType || parentConfig.layoutType}
           authType={route.authType || parentConfig.authType}
+          allowedRoles={route.allowedRoles || parentConfig.allowedRoles}
           {...route.route}
           path={routePath}
         >
@@ -128,11 +130,33 @@ const AuthWrapper = connect(({ auth }) => ({
   }
 });
 
+const RoleCheckWrapper = ({ children, allowedRoles }) => {
+  const role = useRole();
+  const location = useLocation();
+
+  if (!Array.isArray(allowedRoles)) return children;
+
+  if (!role) return <PageSpinner text="Loading" />;
+
+  if (!allowedRoles.includes(role))
+    return (
+      <Redirect
+        to={{
+          pathname: "/no-access",
+          state: { from: location },
+        }}
+      />
+    );
+
+  return children;
+};
+
 const CustomWrapper = routeCustomWrapper || (({ children }) => children);
 
 const Route = ({
   authType = "none",
   layoutType = "empty",
+  allowedRoles = null,
   children,
   ...props
 }) => {
@@ -140,11 +164,13 @@ const Route = ({
     <RouterRoute {...props}>
       <CustomWrapper authType={authType} layoutType={layoutType} {...props}>
         <AuthWrapper type={authType}>
-          <LayoutWrapper type={layoutType}>
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
-              {children}
-            </LocalizationProvider>
-          </LayoutWrapper>
+          <RoleCheckWrapper allowedRoles={allowedRoles}>
+            <LayoutWrapper type={layoutType}>
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                {children}
+              </LocalizationProvider>
+            </LayoutWrapper>
+          </RoleCheckWrapper>
         </AuthWrapper>
       </CustomWrapper>
     </RouterRoute>

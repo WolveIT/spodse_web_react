@@ -3,11 +3,9 @@ import FirebaseAuth from "../services/auth";
 import { localErrorHandler } from "../utils/errorHandler";
 import { message } from "antd";
 import { authService } from "../utils/config";
-import Business from "../services/business";
-import Storage from "../services/storage";
-import { refs } from "../services/utils/firebase_config";
 import { globalState } from "../utils";
 import { fetchUser } from "./user";
+import Role from "../utils/userRole";
 
 const AuthServices = {
   mock: MockAuth,
@@ -23,22 +21,10 @@ export const loginWithEmail = (email, password) => ({
   password,
 });
 
-export const signup = ({ email, password, displayName, profilePicture }) => ({
-  type: `${namespace}/signup`,
-  email,
-  password,
-  displayName,
-  profilePicture,
-});
-
 export const logout = () => ({ type: `${namespace}/logout` });
 
 export const fetchRole = () => ({
   type: `${namespace}/fetchRole`,
-});
-
-export const makeBusiness = () => ({
-  type: `${namespace}/makeBusiness`,
 });
 
 const startLoading = (loadingType) => ({ type: "startLoading", loadingType });
@@ -52,8 +38,6 @@ export default {
     role: undefined,
     loading: {
       login: false,
-      signup: false,
-      makeBusiness: false,
       logout: false,
     },
   },
@@ -68,53 +52,6 @@ export default {
         message.success("Logged in successfully!");
       } catch (error) {
         localErrorHandler({ namespace, error, stopLoading: "login" });
-      }
-    },
-
-    *signup({ email, password, displayName, profilePicture }, { put, call }) {
-      try {
-        yield put(startLoading("signup"));
-        yield put({ type: "setState", isBusinessEmail: undefined });
-        yield call(Auth.signup, {
-          email,
-          password,
-          displayName,
-        });
-        if (profilePicture)
-          yield put({ type: "setState", holdSetAuthUser: true });
-
-        const res = yield call(Auth.login_with_email, email, password);
-
-        if (profilePicture) {
-          const [imageUrl] = yield call(Storage.upload, {
-            uploadPath: `/ProfilePictures/${res.user.uid}/`,
-            files: [profilePicture],
-          });
-          const updater = () =>
-            refs.users.doc(res.user.uid).update({ profilePicture: imageUrl });
-          yield call(updater);
-          yield put({
-            type: "setState",
-            holdSetAuthUser: false,
-            user: res.user,
-          });
-        }
-
-        yield put(stopLoading("signup"));
-      } catch (error) {
-        localErrorHandler({ namespace, error, stopLoading: "signup" });
-      }
-    },
-
-    *makeBusiness(_, { put, call }) {
-      try {
-        yield put(startLoading("makeBusiness"));
-        yield call(Business.make_business);
-        yield put(fetchRole());
-        yield put(stopLoading("makeBusiness"));
-        message.success("Business account created successfully!");
-      } catch (error) {
-        localErrorHandler({ namespace, error, stopLoading: "makeBusiness" });
       }
     },
 
@@ -135,13 +72,9 @@ export default {
         if (prev) return;
 
         const customClaims = yield call(Auth.get_claims, true);
-        let role = "normal";
-        if (customClaims?.["super-admin"] === true) {
-          role = "super-admin";
-        } else if (customClaims?.admin === true) {
-          role = "admin";
-        } else if (customClaims?.business === true) {
-          role = "business";
+        let role = Role.types.NORMAL;
+        for (const val of Object.values(Role.types)) {
+          if (customClaims?.[val] === true) role = val;
         }
 
         yield put({
