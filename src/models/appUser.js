@@ -186,7 +186,11 @@ export default {
       return { ...state, [name]: state[name].concat(list) };
     },
     deleteUserFromState(state, { uid }) {
-      return { ...state, list: state.list.filter((item) => item.id !== uid) };
+      return {
+        ...state,
+        list: state.list.filter((item) => item.id !== uid),
+        filterResults: state.filterResults.filter((item) => item.id !== uid),
+      };
     },
     saveFilters(state, { searchTerm, role }) {
       return {
