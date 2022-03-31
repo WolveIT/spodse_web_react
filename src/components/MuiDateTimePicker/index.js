@@ -25,6 +25,7 @@ export function MuiDateTimePicker({ placeholder = "Enter Date", ...props }) {
   const id = useMemo(() => "ip_" + randHashString(6), []);
   return (
     <DateTimePicker
+      ampm={false}
       renderInput={(props) => (
         <RenderInput {...props} placeholder={placeholder} id={id} />
       )}

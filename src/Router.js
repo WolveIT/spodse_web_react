@@ -17,9 +17,9 @@ import AdapterDateFns from "@mui/lab/AdapterDateFns";
 import EmptyLayout from "./layouts/EmptyLayout";
 import AuthLayout from "./layouts/AuthLayout";
 import DashboardLayout from "./layouts/DashboardLayout";
-import { getRoutePath } from "./utils";
+import { arrayIntersect, getRoutePath } from "./utils";
 import PopoverWidth from "./components/PopoverWidth";
-import { useRole } from "./utils/userRole";
+import Role, { useRole } from "./utils/userRole";
 
 const routeRenderer = (
   routes,
@@ -130,15 +130,25 @@ const AuthWrapper = connect(({ auth }) => ({
   }
 });
 
-const RoleCheckWrapper = ({ children, allowedRoles }) => {
+const RoleCheckWrapper = ({ children, allowedRoles, authType }) => {
   const role = useRole();
   const location = useLocation();
 
-  if (!Array.isArray(allowedRoles)) return children;
+  if (authType !== "only-authenticated") return children;
 
   if (!role) return <PageSpinner text="Loading" />;
 
-  if (!allowedRoles.includes(role))
+  if (!Array.isArray(allowedRoles))
+    allowedRoles = [
+      Role.types.ADMIN,
+      Role.types.BUSINESS,
+      Role.types.SUPER_ADMIN,
+    ];
+
+  if (
+    !allowedRoles?.includes(role) &&
+    !location.pathname.startsWith("/no-access")
+  )
     return (
       <Redirect
         to={{
@@ -164,7 +174,7 @@ const Route = ({
     <RouterRoute {...props}>
       <CustomWrapper authType={authType} layoutType={layoutType} {...props}>
         <AuthWrapper type={authType}>
-          <RoleCheckWrapper allowedRoles={allowedRoles}>
+          <RoleCheckWrapper authType={authType} allowedRoles={allowedRoles}>
             <LayoutWrapper type={layoutType}>
               <LocalizationProvider dateAdapter={AdapterDateFns}>
                 {children}
