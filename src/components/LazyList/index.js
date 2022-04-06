@@ -50,6 +50,7 @@ export default function LazyList({
           {...props}
           style={{
             height: listHeight,
+            marginRight: "0.5rem",
             ...(listStyle || {}),
           }}
           dataSource={

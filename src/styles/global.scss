@@ -55,3 +55,7 @@ a {
     z-index: 1;
   }
 }
+
+div[role="listbox"] {
+  outline: none;
+}
