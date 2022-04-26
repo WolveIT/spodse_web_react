@@ -64,3 +64,8 @@ export function toFirestoreTime(val) {
 
   return db.Timestamp.fromDate(val);
 }
+
+export function arrayIntersect(arr1, arr2) {
+  const setB = new Set(arr2);
+  return Array.from(new Set(arr1)).filter((x) => setB.has(x));
+}

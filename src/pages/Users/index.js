@@ -1,21 +1,31 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import { useDispatch, useSelector } from "dva";
-import { Table, Spin } from "antd";
+import { Table, Spin, Input } from "antd";
 import moment from "moment";
-import { fetchUsers } from "../../models/appUser";
+import { applyFilters, fetchUsers } from "../../models/appUser";
 import { throttle } from "lodash";
 import { placeholderAvatar } from "../../utils";
 import ServerImg from "../../components/ServerImg";
+import RoleSelector from "./roleSelector";
+import SearchAndFilters from "./searchAndFilters";
+import Actions from "./actions";
 
-export default function AllUsers(props) {
-  const { users, loading } = useSelector(({ appUser }) => ({
-    users: appUser.list,
-    loading: appUser.loading.list,
-  }));
+export default function AllUsers() {
+  const { users, _loading, filtersMode, filterResults, filtersLoading } =
+    useSelector(({ appUser }) => ({
+      users: appUser.list,
+      _loading: appUser.loading.list,
+      filtersMode: appUser.filtersMode,
+      filterResults: appUser.filterResults,
+      filtersLoading: appUser.loading.filters,
+    }));
   const dispatch = useDispatch();
 
   useEffect(() => {
     dispatch(fetchUsers(true));
+  }, []);
+
+  useEffect(() => {
     const table = document.querySelector(".users-table");
 
     const onTableScroll = throttle((e) => {
@@ -25,12 +35,13 @@ export default function AllUsers(props) {
       const delta = maxScroll - currentScroll;
       const remainingPercent = (delta / clientHeight) * 100;
 
-      if (remainingPercent < 10) dispatch(fetchUsers());
+      if (remainingPercent < 10)
+        dispatch(filtersMode ? applyFilters(true) : fetchUsers());
     }, 500);
 
     table.addEventListener("scroll", onTableScroll);
     return () => table.removeEventListener("scroll", onTableScroll);
-  }, []);
+  }, [filtersMode]);
 
   const columns = [
     {
@@ -68,60 +79,83 @@ export default function AllUsers(props) {
       title: "Phone",
       dataIndex: "phone",
       key: "phone",
-      render: (e) => <a href={`tel:${e}`}>{e}</a>,
+      render: (e) => (
+        <a style={{ display: "inline-block", minWidth: 100 }} href={`tel:${e}`}>
+          {e}
+        </a>
+      ),
     },
     {
       title: "Bio",
       dataIndex: "bio",
       key: "bio",
+      render: (e) => (
+        <span style={{ display: "inline-block", minWidth: 100 }}>{e}</span>
+      ),
     },
     {
       title: "Role",
       dataIndex: "role",
       key: "role",
+      render: (role, user) => (
+        <RoleSelector style={{ width: 150 }} role={role} user={user} />
+      ),
     },
     {
-      title: "Created Date",
+      title: "Created At",
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (e) => <span>{moment(e?.toDate()).format("D MMM YY")}</span>,
+      render: (e) => (
+        <span style={{ display: "inline-block", minWidth: 70 }}>
+          {e?.toDate() ? moment(e.toDate()).format("D MMM YY") : "-"}
+        </span>
+      ),
+    },
+    {
+      title: "",
+      key: "actions",
+      render: (_, user) => <Actions user={user} />,
     },
   ];
 
+  const loading = filtersMode ? filtersLoading : _loading;
+
   return (
-    <div
-      className="users-table"
-      style={{
-        overflow: "auto",
-        position: "absolute",
-        bottom: 0,
-        top: 0,
-        left: 0,
-        right: 0,
-      }}
-    >
-      <Table
-        style={{ width: "100%" }}
-        sticky
-        columns={columns}
-        pagination={false}
-        loading={loading && users}
-        dataSource={users}
-        footer={() => (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <Spin
-              style={{ visibility: props.loading ? "visible" : "hidden" }}
-              tip="Loading..."
-            />
-          </div>
-        )}
-      />
+    <div style={{ position: "relative", height: "100%" }}>
+      <SearchAndFilters />
+      <div
+        className="users-table"
+        style={{
+          overflow: "auto",
+          position: "absolute",
+          bottom: 0,
+          top: 44,
+          left: 0,
+          right: 0,
+        }}
+      >
+        <Table
+          style={{ width: "100%" }}
+          sticky
+          columns={columns}
+          pagination={false}
+          dataSource={filtersMode ? filterResults : users}
+          footer={() => (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <Spin
+                style={{ visibility: loading ? "visible" : "hidden" }}
+                tip="Loading..."
+              />
+            </div>
+          )}
+        />
+      </div>
     </div>
   );
 }

@@ -2,8 +2,9 @@ import React, { useCallback } from "react";
 import { Menu } from "antd";
 import { routes } from "../../utils/config";
 import { Link, useLocation, matchPath } from "react-router-dom";
-import { connect } from "dva";
+import { useSelector } from "dva";
 import { getRoutePath } from "utils";
+import { useRole } from "../../utils/userRole";
 const { SubMenu } = Menu;
 
 function getParentKeys(key, arr = []) {
@@ -15,11 +16,21 @@ function getParentKeys(key, arr = []) {
   return getParentKeys(key, arr);
 }
 
-export default connect(({ router }) => ({ cr: router.computedRoutes }))(
-  function MainMenu({ cr, height }) {
-    const menuRenderer = useCallback((routes, prefix = "", basePath = "") => {
+export default function MainMenu({ height }) {
+  const cr = useSelector(({ router }) => router.computedRoutes);
+  const role = useRole();
+
+  const menuRenderer = useCallback(
+    (routes, prefix = "", basePath = "") => {
       return routes
         .filter((route) => route.menuItem)
+        .filter(
+          (route) =>
+            !(
+              Array.isArray(route.allowedRoles) &&
+              !route.allowedRoles.includes(role)
+            )
+        )
         .map((route, i) => {
           const path = getRoutePath(basePath, route.route?.path || "");
 
@@ -41,21 +52,22 @@ export default connect(({ router }) => ({ cr: router.computedRoutes }))(
             </Menu.Item>
           );
         });
-    }, []);
+    },
+    [role]
+  );
 
-    const pathname = useLocation().pathname;
-    const selectedKey = cr.find((r) => matchPath(pathname, r.route)).key;
+  const pathname = useLocation().pathname;
+  const selectedKey = cr.find((r) => matchPath(pathname, r.route)).key;
 
-    return (
-      <Menu
-        style={{ height }}
-        defaultOpenKeys={getParentKeys(selectedKey)}
-        selectedKeys={[selectedKey]}
-        mode="inline"
-        theme="dark"
-      >
-        {menuRenderer(routes)}
-      </Menu>
-    );
-  }
-);
+  return (
+    <Menu
+      style={{ height }}
+      defaultOpenKeys={getParentKeys(selectedKey)}
+      selectedKeys={[selectedKey]}
+      mode="inline"
+      theme="dark"
+    >
+      {menuRenderer(routes)}
+    </Menu>
+  );
+}

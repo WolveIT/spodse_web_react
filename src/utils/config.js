@@ -8,7 +8,7 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 import { Redirect } from "react-router-dom";
-import RouteCustomWrapper from "../components/RouteCustomWrapper";
+import Role from "./userRole";
 
 export const authService = "firebase"; //possible values: 'firebase', 'mock'
 
@@ -27,7 +27,7 @@ export const routes = [
     authType: "only-authenticated", //authentication type, configure in Router.js file (default:'none') (inherited by sub routes)
     component: require("pages/Dashboard").default, //component to render in the designated layout's children (if no component is given, no route is created)
     menuItem: true, //should this route be showed in the nav bar as a menu item (NOT inherited by sub routes)
-    allowedRoles: null, //if allowedRoles is nullish, then this route is allowed for any role. otherwise it can be an array of role strings
+    allowedRoles: null, //if allowedRoles is nullish, then this route is allowed for any role. otherwise it can be an array of role strings (inherited by sub routes)
   },
   {
     title: "Events",
@@ -84,6 +84,7 @@ export const routes = [
     layoutType: "dashboard",
     authType: "only-authenticated",
     menuItem: true,
+    allowedRoles: [Role.types.ADMIN, Role.types.SUPER_ADMIN],
     subRoutes: [
       {
         title: "New User",
@@ -150,19 +151,11 @@ export const routes = [
   },
   {
     route: {
-      path: "/signup",
-    },
-    layoutType: "auth",
-    authType: "only-unauthenticated",
-    component: require("../pages/Signup").default,
-  },
-  {
-    route: {
-      path: "/no-account",
+      path: "/no-access",
     },
     layoutType: "empty",
     authType: "only-authenticated",
-    component: require("../pages/NoAccount").default,
+    component: require("../pages/NoAccess").default,
   },
   {
     route: {
@@ -172,4 +165,4 @@ export const routes = [
   },
 ];
 
-export const routeCustomWrapper = RouteCustomWrapper;
+export const routeCustomWrapper = null;

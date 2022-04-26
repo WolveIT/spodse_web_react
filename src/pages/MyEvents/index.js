@@ -88,45 +88,47 @@ function AllEvents(props) {
   ];
 
   return (
-    <div
-      className="events-table"
-      style={{
-        overflow: "auto",
-        position: "absolute",
-        bottom: 0,
-        top: 0,
-        left: 0,
-        right: 0,
-      }}
-    >
-      <Table
-        style={{ width: "100%" }}
-        sticky
-        columns={columns}
-        pagination={false}
-        loading={props.loading && !props.events}
-        onRow={(item) => ({
-          onClick: (_) => {
-            props.saveEvent(item);
-            history.push(`/events/${item.id}`);
-          },
-        })}
-        dataSource={props.events}
-        footer={(data) => (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <Spin
-              style={{ visibility: props.loading ? "visible" : "hidden" }}
-              tip="Loading..."
-            />
-          </div>
-        )}
-      />
+    <div style={{ position: "relative", height: "100%" }}>
+      <div
+        className="events-table"
+        style={{
+          overflow: "auto",
+          position: "absolute",
+          bottom: 0,
+          top: 0,
+          left: 0,
+          right: 0,
+        }}
+      >
+        <Table
+          style={{ width: "100%" }}
+          sticky
+          columns={columns}
+          pagination={false}
+          loading={props.loading && !props.events}
+          onRow={(item) => ({
+            onClick: (_) => {
+              props.saveEvent(item);
+              history.push(`/events/${item.id}`);
+            },
+          })}
+          dataSource={props.events}
+          footer={(data) => (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <Spin
+                style={{ visibility: props.loading ? "visible" : "hidden" }}
+                tip="Loading..."
+              />
+            </div>
+          )}
+        />
+      </div>
     </div>
   );
 }
