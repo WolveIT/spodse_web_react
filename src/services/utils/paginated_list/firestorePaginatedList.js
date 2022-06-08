@@ -1,16 +1,17 @@
-import Firestore from "../firestore";
+import Firestore from "../../firestore";
 
-export class PaginatedList {
-  constructor({ basicQuery, perBatch }) {
+export default class FirestorePaginatedList {
+  constructor({ baseQuery, perBatch }) {
     this.last = null;
     this.perBatch = perBatch || 10;
     this.noMore = false;
-    this.basicQuery = basicQuery;
+    this.baseQuery = baseQuery;
   }
 
   get_next = async () => {
+    console.debug("Firestore get next called");
     if (this.noMore) return [];
-    let query = this.basicQuery;
+    let query = this.baseQuery;
     if (this.last) query = query.startAfter(this.last);
     const snap = await Firestore.get_list(query.limit(this.perBatch));
     if (snap.docs.length === 0) this.noMore = true;

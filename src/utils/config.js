@@ -2,6 +2,7 @@ import React from "react";
 import {
   CalendarOutlined,
   DashboardOutlined,
+  NotificationOutlined,
   PlusCircleOutlined,
   SettingOutlined,
   UnorderedListOutlined,
@@ -116,6 +117,19 @@ export const routes = [
     ],
   },
   {
+    title: "Notifications",
+    icon: NotificationOutlined,
+    route: {
+      path: "/notifications",
+      exact: true,
+    },
+    layoutType: "dashboard",
+    authType: "only-authenticated",
+    component: require("pages/Notifications").default,
+    menuItem: true,
+    allowedRoles: [Role.types.ADMIN, Role.types.SUPER_ADMIN],
+  },
+  {
     title: "Settings",
     icon: SettingOutlined,
     route: {
@@ -140,6 +154,14 @@ export const routes = [
     },
     layoutType: "auth",
     component: require("pages/DownloadApp").default,
+  },
+  {
+    route: {
+      path: "/ticket-view/:ticketId",
+      exact: true,
+    },
+    layoutType: "auth",
+    component: require("pages/TicketView").default,
   },
   {
     route: {

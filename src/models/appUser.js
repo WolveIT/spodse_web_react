@@ -1,6 +1,6 @@
 import Algolia from "../services/algolia";
 import { db, refs } from "../services/utils/firebase_config";
-import { PaginatedList } from "../services/utils/paginated_list";
+import PaginatedList from "../services/utils/paginated_list/firestorePaginatedList";
 import { localErrorHandler } from "../utils/errorHandler";
 
 const namespace = "appUser";
@@ -92,7 +92,7 @@ export default {
         if (!listInstance)
           listInstance = new PaginatedList({
             perBatch,
-            basicQuery: query.orderBy("createdAt", "desc"),
+            baseQuery: query.orderBy("createdAt", "desc"),
           });
 
         yield put({

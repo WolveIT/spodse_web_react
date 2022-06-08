@@ -20,7 +20,7 @@ export default function DownloadApp() {
         <a href="https://apps.apple.com/no/app/spodse-as/id1534184541?l=nb">
           <img alt="download on appstore" src={appStore} />
         </a>
-        <a href="https://play.google.com/apps/internaltest/4700910902761783779">
+        <a href="https://play.google.com/store/apps/details?id=com.tbleAS.spodse&gl=NO">
           <img alt="download on playstore" src={playStore} />
         </a>
       </div>

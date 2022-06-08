@@ -3,7 +3,7 @@ import Algolia from "../services/algolia";
 import Event from "../services/event";
 import Firestore from "../services/firestore";
 import { currUser, db, refs } from "../services/utils/firebase_config";
-import { PaginatedList } from "../services/utils/paginated_list";
+import PaginatedList from "../services/utils/paginated_list/firestorePaginatedList";
 import { dispatch, toFirestoreTime } from "../utils";
 import { localErrorHandler } from "../utils/errorHandler";
 import { isValidEmail } from "../utils/validations";
@@ -381,7 +381,7 @@ export default {
         if (!listInstance)
           listInstance = new PaginatedList({
             perBatch,
-            basicQuery: refs.allUserEventsGoing
+            baseQuery: refs.allUserEventsGoing
               .where("eventID", "==", eventId)
               .orderBy("createdAt", "desc"),
           });
@@ -432,7 +432,7 @@ export default {
         if (!listInstance)
           listInstance = new PaginatedList({
             perBatch,
-            basicQuery: refs.eventInvites(eventId).orderBy("createdAt", "desc"),
+            baseQuery: refs.eventInvites(eventId).orderBy("createdAt", "desc"),
           });
 
         yield put({
@@ -472,7 +472,7 @@ export default {
         if (!listInstance)
           listInstance = new PaginatedList({
             perBatch,
-            basicQuery: refs.eventsAccControl
+            baseQuery: refs.eventsAccControl
               .where("eventDetails.id", "==", eventId)
               .where("role", "==", "ticket-validator")
               .orderBy("stats.totalTicketsValidated", "desc")
@@ -516,7 +516,7 @@ export default {
         if (!listInstance)
           listInstance = new PaginatedList({
             perBatch,
-            basicQuery: refs.events
+            baseQuery: refs.events
               .where("organizerId", "==", currUser().uid)
               .orderBy("createdAt", "desc"),
           });

@@ -3,11 +3,17 @@ import Title from "antd/lib/typography/Title";
 import { Button, Form, Input, message, Progress, Switch, Tooltip } from "antd";
 import AppUser from "../../services/appUser";
 import { globalErrorHandler } from "../../utils/errorHandler";
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { historyBackWFallback } from "../../utils";
 import Theme from "../../utils/theme";
 import { isValidEmail, isValidPassword } from "../../utils/validations";
-import { InfoCircleOutlined, SyncOutlined } from "@ant-design/icons";
+import {
+  CheckOutlined,
+  CloseOutlined,
+  InfoCircleOutlined,
+  LoadingOutlined,
+  SyncOutlined,
+} from "@ant-design/icons";
 import { randString } from "../../services/utils/utils";
 import RoleSelector from "../Users/roleSelector";
 import Role from "../../utils/userRole";
@@ -15,13 +21,59 @@ import { MuiDatePicker } from "../../components/MuiDateTimePicker";
 import newEventStyles from "../NewEvent/index.module.scss";
 import moment from "moment";
 import ImagePicker from "../../components/ImagePicker";
+import debounce from "lodash.debounce";
+import Firestore from "../../services/firestore";
+import { refs } from "../../services/utils/firebase_config";
+
+export const status = {
+  INDEFINITE: "indefinite",
+  LOADING: "loading",
+  SUCCESS: "success",
+  ERROR: "error",
+};
+
+const onSettleUsername = debounce((val, setUsernameStatus) => {
+  if (!val?.length || val?.length < 3 || val?.includes(" ")) {
+    return setUsernameStatus(status.INDEFINITE);
+  }
+  setUsernameStatus(status.LOADING);
+  Firestore.get(refs.displayNames.doc(val))
+    .then((doc) => {
+      if (!doc) setUsernameStatus(status.SUCCESS);
+      else setUsernameStatus(status.ERROR);
+    })
+    .catch((e) => {
+      setUsernameStatus(status.ERROR);
+      globalErrorHandler(e);
+    });
+}, 1200);
+
+function getUsernameSuffix(usernameStatus) {
+  switch (usernameStatus) {
+    case status.INDEFINITE:
+      return " ";
+    case status.LOADING:
+      return <LoadingOutlined spin style={{ color: Theme.get() }} />;
+    case status.SUCCESS:
+      return (
+        <Tooltip title="Username is available!">
+          <CheckOutlined style={{ color: "#28A745" }} />
+        </Tooltip>
+      );
+    case status.ERROR:
+      return (
+        <Tooltip title="Username is already taken!">
+          <CloseOutlined style={{ color: "#DC3444" }} />
+        </Tooltip>
+      );
+  }
+}
 
 export default function NewUser() {
-  const userId = useParams().userId;
   const [progress, setProgress] = useState();
   const pathname = useLocation().pathname;
-  const editMode = pathname.slice(pathname.lastIndexOf("/") + 1) === "edit";
   const [form] = Form.useForm();
+  const [usernameStatus, setUsernameStatus] = useState(status.INDEFINITE);
 
   const onPasswordGenerate = useCallback(() => {
     form.setFieldsValue({ password: randString(10) });
@@ -30,15 +82,18 @@ export default function NewUser() {
   const onSubmit = useCallback((data) => {
     data.birthDate = moment(data.birthDate).format("DD/MM/YYYY");
     setProgress(0);
-    AppUser[editMode ? "update" : "create"](data, setProgress)
+    AppUser.create(data, setProgress)
       .then(() => {
-        message.success(
-          `User ${editMode ? "updated" : "created"} Successfully!`
-        );
+        message.success(`User created successfully!`);
         historyBackWFallback("users/list");
       })
       .catch(globalErrorHandler)
       .finally(setProgress);
+  }, []);
+
+  const onUsernameChange = useCallback((e) => {
+    const { value } = e.target;
+    onSettleUsername(value, setUsernameStatus);
   }, []);
 
   return (
@@ -61,6 +116,10 @@ export default function NewUser() {
           style={{ width: 0, height: 0, border: 0, padding: 0 }}
         />
         <input
+          name="username"
+          style={{ width: 0, height: 0, border: 0, padding: 0 }}
+        />
+        <input
           name="password"
           type="password"
           style={{ width: 0, height: 0, border: 0, padding: 0 }}
@@ -72,6 +131,27 @@ export default function NewUser() {
           rules={[{ required: true }]}
         >
           <Input placeholder="User's Full Name" />
+        </Form.Item>
+
+        <Form.Item
+          name="username"
+          label="Username"
+          rules={[
+            { required: true },
+            { min: 3, type: "string" },
+            {
+              validator: (_, val) =>
+                val.includes(" ")
+                  ? Promise.reject("Username can not have spaces")
+                  : Promise.resolve(),
+            },
+          ]}
+        >
+          <Input
+            suffix={getUsernameSuffix(usernameStatus)}
+            onChange={onUsernameChange}
+            placeholder="Unique username"
+          />
         </Form.Item>
 
         <Form.Item
@@ -166,7 +246,9 @@ export default function NewUser() {
 
         <Form.Item>
           <Button
-            disabled={progress !== undefined}
+            disabled={
+              progress !== undefined || usernameStatus !== status.SUCCESS
+            }
             type="primary"
             htmlType="submit"
           >

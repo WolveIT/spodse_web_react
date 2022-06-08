@@ -47,6 +47,8 @@ const eventsAccControl = db().collection("eventsAccessControl");
 
 const tickets = db().collection("tickets");
 
+const displayNames = db().collection("displayNames");
+
 const config = db().collection("config");
 
 const test = db().collection("test");
@@ -65,6 +67,7 @@ export const refs = {
   eventInvites,
   eventsAccControl,
   tickets,
+  displayNames,
   config,
   test,
 };

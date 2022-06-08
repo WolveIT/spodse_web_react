@@ -121,7 +121,7 @@ function NewEvent({ event, fetchEvent, fetchLoading, setFormData }) {
             ? data.mainSponsorImage
             : [null]
           ).concat(data.otherSponsorImages)
-        : data.mainSponsorImage;
+        : data.mainSponsorImage || [];
       setProgress(0);
       Event[editMode ? "update" : "create"](data, setProgress)
         .then((eventId) => {

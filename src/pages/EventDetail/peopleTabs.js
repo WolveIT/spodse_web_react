@@ -28,6 +28,7 @@ import {
   RightOutlined,
   ReloadOutlined,
   CheckCircleFilled,
+  SendOutlined,
 } from "@ant-design/icons";
 import ServerImg from "../../components/ServerImg";
 import Theme from "../../utils/theme";
@@ -46,6 +47,7 @@ import Event from "../../services/event";
 import TabSearch from "./tabSearch";
 import PerksInfo from "./perksInfo";
 import { globalErrorHandler } from "../../utils/errorHandler";
+import SendTicket from "./sendTicket";
 
 let __invitationMsg__ = "";
 function getInvitationMsg() {
@@ -315,8 +317,11 @@ export function UserCard({
   profilePicture,
   displayName,
   email,
+  ticketURL,
   date,
   onResendInvite,
+  onSendTicket,
+  getLink,
   status,
   onDelete,
   onSuccessDelete,
@@ -365,6 +370,21 @@ export function UserCard({
       <Tooltip placement="bottom" title="Resend Invitation">
         <span>
           <ResendInvitation onClick={onResendInvite} />
+        </span>
+      </Tooltip>
+    );
+  }
+
+  if (onSendTicket && email && status === "pending") {
+    actions.push(
+      <Tooltip placement="bottom" title="Send Ticket (QR Code)">
+        <span>
+          <SendTicket
+            ticketURL={ticketURL}
+            email={email}
+            onSubmit={onSendTicket}
+            getLink={getLink}
+          />
         </span>
       </Tooltip>
     );
@@ -659,6 +679,7 @@ export default function PeopleTabs({ event, listHeight = 375 }) {
                   item.inviteeDetails?.displayName || item.inviteeDetails?.email
                 }
                 email={item.inviteeDetails?.email}
+                ticketURL={item.ticketURL}
                 invitationLink={item.invitationLink}
                 perks={Object.entries(item.perks || {}).reduce(
                   (acc, [key, val]) => ({
@@ -686,6 +707,20 @@ export default function PeopleTabs({ event, listHeight = 375 }) {
                     invitationId: item.id,
                     eventId: event.id,
                     message: getInvitationMsg(),
+                  })
+                }
+                onSendTicket={(email, phone) =>
+                  Event.send_ticket({
+                    eventId: event.id,
+                    invitationId: item.id,
+                    email,
+                    phone,
+                  })
+                }
+                getLink={() =>
+                  Event.get_ticket_link({
+                    eventId: event.id,
+                    invitationId: item.id,
                   })
                 }
                 onDelete={{

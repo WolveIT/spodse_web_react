@@ -14,7 +14,7 @@ const BC = true; //whether backwards compatible or not
 async function generateTickets(qty) {
   const arr = [];
   for (let i = 0; i < qty; ++i) {
-    arr.push(randString(10));
+    arr.push(randString(16));
   }
   return arr;
 }
@@ -42,7 +42,9 @@ function get_new_event_doc(data) {
     images: data.images || [],
     logoImage: data.logoImage || null,
     location: data.location,
-    maxAttendees: data.maxAttendees,
+    maxAttendees: data.ticketAnswer
+      ? data.maxAttendees
+      : data.maxAttendees || Infinity,
     title: data.title,
     organizerId: currUser().uid,
     isPrivate: data.isPrivate,
@@ -339,6 +341,23 @@ function resend_invite_all({ eventId, message }) {
   });
 }
 
+function send_ticket({ eventId, invitationId, email, phone }) {
+  return functions().httpsCallable("eventSendTicket")({
+    eventId,
+    invitationId,
+    email,
+    phone,
+  });
+}
+
+async function get_ticket_link({ eventId, invitationId }) {
+  const res = await functions().httpsCallable("eventGetTicketLink")({
+    eventId,
+    invitationId,
+  });
+  return res.data;
+}
+
 const Event = {
   create,
   update,
@@ -351,6 +370,8 @@ const Event = {
   update_ticket_perks,
   resend_invite,
   resend_invite_all,
+  send_ticket,
+  get_ticket_link,
   delete: _delete,
 };
 

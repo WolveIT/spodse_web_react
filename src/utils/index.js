@@ -69,3 +69,19 @@ export function arrayIntersect(arr1, arr2) {
   const setB = new Set(arr2);
   return Array.from(new Set(arr1)).filter((x) => setB.has(x));
 }
+
+export const arrayUniqueByKey = (arr, key) => {
+  const set = new Set();
+  return arr.filter((o) => !set.has(o[key]) && set.add(o[key]));
+};
+
+export const queryWithoutSort = (query) => {
+  const q = Object.create(query);
+
+  if (query.Ff) q.Ff = Object.create(query.Ff);
+
+  if (query.Ff.on) q.Ff.on = Object.create(query.Ff.on);
+
+  q.Ff.on = [];
+  return q;
+};

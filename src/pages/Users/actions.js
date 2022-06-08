@@ -1,6 +1,7 @@
 import React from "react";
 import { Dropdown, Menu, message, Switch, Tooltip } from "antd";
 import {
+  CheckCircleOutlined,
   CopyOutlined,
   DeleteOutlined,
   InfoCircleOutlined,
@@ -67,6 +68,30 @@ const actions = [
       [Role.types.ADMIN, Role.types.SUPER_ADMIN].includes(user.role) &&
       !Role.is_super_admin(role),
   }),
+  (user, role) =>
+    !Role.is_super_admin(role)
+      ? null
+      : {
+          title: "Verify Email",
+          icon: <CheckCircleOutlined />,
+          onClick: () => {
+            AlertPopup({
+              title: "Verify user's email address",
+              message: (
+                <span>
+                  If user's email is not already verified, then this action will
+                  verify it, otherwise nothing will happen.
+                  <br />
+                  Are you sure to continue?
+                </span>
+              ),
+              onOk: () =>
+                AppUser.verify_email({ uid: user.id }).then(() => {
+                  message.success("User account successfully verified");
+                }),
+            });
+          },
+        },
 ];
 
 function Actions({ user }) {
@@ -75,6 +100,7 @@ function Actions({ user }) {
     <Menu>
       {actions.map((item) => {
         const action = item(user, role);
+        if (!action) return null;
         return <Menu.Item {...action}>{action.title}</Menu.Item>;
       })}
     </Menu>

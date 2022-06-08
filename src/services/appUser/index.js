@@ -7,6 +7,7 @@ async function create(
     email,
     password,
     displayName,
+    username,
     role,
     sendEmailAlert,
     profilePicture,
@@ -22,6 +23,7 @@ async function create(
     email,
     password,
     displayName,
+    username,
     role,
     sendEmailAlert,
     profilePicture: "",
@@ -57,6 +59,10 @@ async function change_role({ uid, newRole, sendEmailAlert }) {
   });
 }
 
+async function verify_email({ uid }) {
+  return functions().httpsCallable("adminVerifyUserAccount")({ uid });
+}
+
 async function _delete({ uid, deleteEvents = false }) {
   return functions().httpsCallable("adminDeleteUserAccount")({
     uid,
@@ -67,6 +73,7 @@ async function _delete({ uid, deleteEvents = false }) {
 const AppUser = {
   create,
   change_role,
+  verify_email,
   delete: _delete,
 };
 
